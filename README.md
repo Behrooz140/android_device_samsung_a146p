@@ -213,6 +213,11 @@ by the running system (which is read at boot via `TW_OVERRIDE_SYSTEM_PROPS`).
 | Backup of logical partitions | ❌ Intentionally disabled |
 | Boot diagnostics | ✅ `sbin/twrp-diag.sh` |
 
+To fit the stock 40 MiB recovery partition, optional extras (`NTFS-3G`,
+`lptools`, repack tools and extra languages) are disabled. They are not needed
+for flashing, wiping, sideload, backup or restore on A146P and may be enabled
+later if an A146P-specific use case is confirmed and the image still fits.
+
 ### Getting logs when the device will not boot
 
 The `twrpdiag` service runs about 20 seconds after boot and writes only to

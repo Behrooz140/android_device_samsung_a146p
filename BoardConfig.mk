@@ -84,6 +84,11 @@ BOARD_MKBOOTIMG_ARGS += --dtb_offset 0x07c08000
 BOARD_MKBOOTIMG_ARGS += --board SRPVH12A021
 BOARD_MKBOOTIMG_ARGS += --os_version 15.0.0 --os_patch_level 2026-09
 
+# AOSP's core/Makefile appends "buildvariant=$(TARGET_BUILD_VARIANT)" to
+# INTERNAL_KERNEL_CMDLINE. Make's last assignment wins, so restoring the stock
+# cmdline here keeps the final boot header byte-for-byte identical to stock.
+INTERNAL_KERNEL_CMDLINE := $(BOARD_KERNEL_CMDLINE)
+
 TARGET_FORCE_PREBUILT_KERNEL := true
 TARGET_PREBUILT_KERNEL := $(DEVICE_PATH)/prebuilt/kernel
 TARGET_PREBUILT_DTB := $(DEVICE_PATH)/prebuilt/dtb.img
@@ -154,6 +159,9 @@ BOARD_AVB_RECOVERY_ROLLBACK_INDEX := 1
 BOARD_AVB_RECOVERY_ROLLBACK_INDEX_LOCATION := 1
 
 # Keep the build from being blocked by an older installed security patch.
+# These values are only build-time placeholders. They are still exported into
+# the final image unless overridden by the stock values below, which must be
+# the last OS metadata arguments passed to mkbootimg.
 PLATFORM_SECURITY_PATCH := 2099-12-31
 VENDOR_SECURITY_PATCH := 2099-12-31
 PLATFORM_VERSION := 16.1.0
@@ -164,7 +172,8 @@ PLATFORM_VERSION := 16.1.0
 TW_THEME := portrait_hdpi
 # Move the status-bar clock into the left gap next to the waterdrop notch.
 TW_CUSTOM_CLOCK_POS := 280
-TW_EXTRA_LANGUAGES := true
+# Extra locale data is several MiB and the recovery partition is only 40 MiB.
+TW_EXTRA_LANGUAGES := false
 TW_DEVICE_VERSION := a146p
 TW_SCREEN_BLANK_ON_BOOT := true
 TW_NO_SCREEN_BLANK := true
@@ -182,11 +191,14 @@ TW_HAS_DOWNLOAD_MODE := true
 
 # Tools / features
 TW_INCLUDE_FASTBOOTD := true
-TW_INCLUDE_REPACKTOOLS := true
 TW_INCLUDE_LIBRESETPROP := true
 TW_INCLUDE_RESETPROP := true
-TW_INCLUDE_NTFS_3G := true
-TW_INCLUDE_LPTOOLS := true
+# Optional filesystem/tools packages are disabled to stay within the stock
+# 40 MiB recovery partition. They can be enabled later if a verified A146P
+# need appears and the image still fits.
+TW_INCLUDE_NTFS_3G := false
+TW_INCLUDE_LPTOOLS := false
+TW_INCLUDE_REPACKTOOLS := false
 TW_EXCLUDE_TWRPAPP := true
 # The 6.6 kernel rejects TWRP's APEX loop loader ("Value too large for
 # defined data type"); nothing here needs APEX libraries.

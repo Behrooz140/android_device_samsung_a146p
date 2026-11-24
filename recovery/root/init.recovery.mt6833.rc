@@ -1,0 +1,72 @@
+# Samsung stock recovery imports this file from its own init.rc. TWRP's
+# init.rc only imports /init.recovery.${ro.hardware}.rc, so the Samsung rc has
+# to be imported explicitly or /efs and /sec_efs are never created.
+import /init.recovery.samsung.rc
+
+on init
+    setprop sys.usb.configfs 1
+    setprop sys.usb.controller "musb-hdrc"
+    setprop sys.usb.ffs.aio_compat 1
+
+on fs
+    # MediaTek's regulator-vibrator module comes up at maximum brightness.
+    # Clear it before TWRP's GUI starts so the motor does not run forever.
+    write /sys/class/leds/vibrator/trigger none
+    write /sys/class/leds/vibrator/brightness 0
+
+    # MTP over FunctionFS for TWRP's mtp/ffs server (it writes descriptors to
+    # /dev/usb-ffs/mtp/ep0). Layout follows the stock vendor usb.rc.
+    mkdir /config/usb_gadget/g1/functions/ffs.mtp
+    mkdir /dev/usb-ffs/mtp 0770 mtp mtp
+    mount functionfs mtp /dev/usb-ffs/mtp rmode=0770,fmode=0660,uid=1024,gid=1024,no_disconnect=1
+
+# TWRP's Enable_MTP() sets sys.usb.config to "none" and then "mtp,adb".
+# Without a configfs rule for "mtp,adb", USB (including adb) drops after
+# "none" and never comes back until the next reboot.
+on property:sys.usb.config=mtp,adb && property:sys.usb.configfs=1
+    start adbd
+
+on property:sys.usb.config=mtp,adb && property:sys.usb.ffs.ready=1 && property:sys.usb.ffs.mtp.ready=1 && property:sys.usb.configfs=1
+    write /config/usb_gadget/g1/idProduct 0x4EE2
+    write /config/usb_gadget/g1/configs/b.1/strings/0x409/configuration "mtp_adb"
+    symlink /config/usb_gadget/g1/functions/ffs.mtp /config/usb_gadget/g1/configs/b.1/f1
+    symlink /config/usb_gadget/g1/functions/ffs.adb /config/usb_gadget/g1/configs/b.1/f2
+    write /config/usb_gadget/g1/UDC ${sys.usb.controller}
+    setprop sys.usb.state ${sys.usb.config}
+
+# TWRP's own "none" rule only removes f1.
+on property:sys.usb.config=none && property:sys.usb.configfs=1
+    rm /config/usb_gadget/g1/configs/b.1/f2
+
+on post-fs
+    # Support A/B feature for eMMC and UFS boot regions (stock behavior).
+    symlink /dev/block/sda /dev/block/mmcblk0boot0
+    symlink /dev/block/sdb /dev/block/mmcblk0boot1
+    symlink /dev/block/mmcblk0boot0 /dev/block/by-name/preloader_a
+    symlink /dev/block/mmcblk0boot1 /dev/block/by-name/preloader_b
+
+    exec u:r:update_engine:s0 root root -- /system/bin/mtk_plpath_utils
+
+on boot
+    # The vibrator module can finish probing after "on fs".
+    write /sys/class/leds/vibrator/trigger none
+    write /sys/class/leds/vibrator/brightness 0
+    # No-op unless the bootloader actually set usb_restrict=1.
+    exec_start usb-restrict
+
+# Read-only boot diagnostics for debugging a failed boot. Harmless in normal
+# use; remove this service and /sbin/twrp-diag.sh once booting is confirmed.
+service twrpdiag /system/bin/sh /sbin/twrp-diag.sh
+    class default
+    oneshot
+    user root
+    group root
+    seclabel u:r:recovery:s0
+
+# Forces musb into peripheral mode when the bootloader passes usb_restrict=1.
+service usb-restrict /system/bin/usb_restrict.sh
+    user root
+    group root
+    seclabel u:r:recovery:s0
+    oneshot
+    disabled

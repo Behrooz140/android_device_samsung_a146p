@@ -1,0 +1,247 @@
+#
+# GitHub Actions workflow - build TWRP for Samsung Galaxy A14 5G (a146p)
+#
+# Trigger from the Actions tab (Run workflow) or by pushing a v* tag.
+# Outputs: recovery.img, Odin package, checksums, pinned manifest.
+#
+# Security notes:
+#   - Actions are pinned to commit SHAs, not mutable tags.
+#   - The repo launcher is verified against a fixed SHA256 before use.
+#   - --no-repo-verify is NOT used; the manifest's GPG key is verified.
+#   - The build job has read-only permissions; only the release job can write.
+#   - No patches are applied automatically yet. Add them only after they have
+#     been rebased and verified against the exact source revision used here.
+#
+
+name: Build TWRP (a146p)
+
+on:
+  workflow_dispatch:
+    inputs:
+      variant:
+        description: "Build variant"
+        required: true
+        default: "eng"
+        type: choice
+        options:
+          - eng
+          - userdebug
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: twrp-a146p-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  DEVICE: a146p
+  VENDOR: samsung
+  TWRP_BRANCH: twrp-12.1
+  MANIFEST_URL: https://github.com/minimal-manifest-twrp/platform_manifest_twrp_aosp.git
+  REPO_SHA256: 05f571deafd6ed6da0d20fa707dde29aa5624dbf35553d697a40dbdd4c8d178a
+  VARIANT: ${{ github.event.inputs.variant || 'eng' }}
+  ALLOW_MISSING_DEPENDENCIES: "true"
+  LC_ALL: C
+
+jobs:
+  build:
+    name: twrp_a146p (${{ github.event.inputs.variant || 'eng' }})
+    runs-on: ubuntu-22.04
+    timeout-minutes: 350
+
+    steps:
+      - name: Checkout device tree
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          fetch-depth: 1
+
+      - name: Free disk space
+        run: |
+          set -eux
+          sudo swapoff -a || true
+          sudo rm -f /swapfile || true
+          sudo rm -rf /usr/share/dotnet /usr/local/lib/android /opt/ghc \
+            /opt/hostedtoolcache/CodeQL /usr/local/share/boost \
+            /usr/local/lib/node_modules /opt/az || true
+          sudo apt-get clean
+          df -h
+
+      - name: Install build dependencies
+        run: |
+          set -eux
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends \
+            bc bison build-essential cpio curl flex g++-multilib \
+            gcc-multilib git git-lfs gnupg gperf imagemagick libelf-dev \
+            liblz4-tool libncurses-dev libsdl1.2-dev libssl-dev libxml2 \
+            libxml2-utils lzop pngcrush rsync schedtool squashfs-tools \
+            xsltproc zip unzip file zlib1g-dev python3 python-is-python3 \
+            openjdk-11-jdk
+          sudo update-java-alternatives -s java-1.11.0-openjdk-amd64 || true
+          java -version
+
+      - name: Install repo (checksum verified) and sync TWRP sources
+        run: |
+          set -euxo pipefail
+          mkdir -p "$HOME/bin" "$HOME/twrp"
+          curl -fsSL https://storage.googleapis.com/git-repo-downloads/repo \
+            -o "$HOME/bin/repo"
+          echo "$REPO_SHA256  $HOME/bin/repo" | sha256sum -c -
+          chmod a+x "$HOME/bin/repo"
+          export PATH="$HOME/bin:$PATH"
+
+          git config --global user.name "GitHub Actions"
+          git config --global user.email "actions@users.noreply.github.com"
+          git config --global color.ui false
+
+          cd "$HOME/twrp"
+          repo init --depth=1 -u "$MANIFEST_URL" -b "$TWRP_BRANCH"
+          repo sync -c -j"$(nproc --all)" --force-sync \
+            --no-clone-bundle --no-tags --optimized-fetch || \
+          repo sync -c -j"$(nproc --all)" --force-sync \
+            --no-clone-bundle --no-tags
+
+          # Record the exact revision used by this build. Commit this file and
+          # pass -m pinned-manifest.xml to repo init for reproducible builds.
+          repo manifest -r -o "$GITHUB_WORKSPACE/artifacts-src-pinned-manifest.xml"
+          df -h
+
+      - name: Add device tree into the source tree
+        run: |
+          set -euxo pipefail
+          cd "$HOME/twrp"
+          mkdir -p "device/$VENDOR"
+          rsync -a --delete \
+            --exclude='.git' --exclude='.github' --exclude='out' \
+            --exclude='.work' \
+            --exclude='/boot.img' --exclude='/init_boot.img' \
+            --exclude='/vendor_boot.img' --exclude='/recovery.img' \
+            --exclude='/vbmeta.img' --exclude='/dtbo.img' \
+            "$GITHUB_WORKSPACE/" "device/$VENDOR/$DEVICE/"
+          echo "--- module count ---"
+          find "device/$VENDOR/$DEVICE/prebuilt/modules" -name '*.ko' | wc -l
+
+      - name: Apply TWRP patches
+        run: |
+          set -euxo pipefail
+          cd "$HOME/twrp"
+          shopt -s nullglob
+          patches=(device/"$VENDOR"/"$DEVICE"/patches/*.patch)
+          if [ ${#patches[@]} -eq 0 ]; then
+            echo "no patches to apply"
+            exit 0
+          fi
+          for p in "${patches[@]}"; do
+            echo "--- applying $(basename "$p") ---"
+            # Fail loudly instead of letting --fuzz silently misapply a patch.
+            patch -p1 --forward --no-backup-if-mismatch -d bootable/recovery < "$p"
+          done
+
+      - name: Reclaim disk space
+        run: |
+          set -euxo pipefail
+          cd "$HOME/twrp"
+          rm -rf .repo
+          df -h
+
+      - name: Build TWRP
+        run: |
+          # Do not use `set -u`: envsetup.sh relies on unset variables.
+          set -eo pipefail
+          cd "$HOME/twrp"
+          export PATH="/usr/lib/jvm/java-11-openjdk-amd64/bin:$HOME/bin:$PATH"
+          export JAVA_HOME="/usr/lib/jvm/java-11-openjdk-amd64"
+          export ALLOW_MISSING_DEPENDENCIES=true
+          . build/envsetup.sh
+          lunch "twrp_${DEVICE}-${VARIANT}"
+          mka recoveryimage -j"$(nproc --all)"
+
+      - name: Collect outputs
+        if: success()
+        run: |
+          set -euxo pipefail
+          OUT="$HOME/twrp/out/target/product/$DEVICE"
+          ART="$GITHUB_WORKSPACE/artifacts"
+          mkdir -p "$ART"
+          ls -lah "$OUT"
+
+          [ -f "$OUT/recovery.img" ] || { echo "recovery.img missing"; exit 1; }
+          cp "$OUT/recovery.img" "$ART/recovery.img"
+
+          # Odin package: plain tar with an appended MD5, named .tar.md5.
+          ODIN="$RUNNER_TEMP/odin"
+          rm -rf "$ODIN" && mkdir -p "$ODIN"
+          cp "$OUT/recovery.img" "$ODIN/recovery.img"
+          (
+            cd "$ODIN"
+            tar -cf "twrp_${DEVICE}.tar" recovery.img
+            md5sum "twrp_${DEVICE}.tar" >> "twrp_${DEVICE}.tar"
+            mv "twrp_${DEVICE}.tar" "twrp_${DEVICE}.tar.md5"
+          )
+          cp "$ODIN/twrp_${DEVICE}.tar.md5" "$ART/"
+
+          cp "$GITHUB_WORKSPACE/artifacts-src-pinned-manifest.xml" \
+            "$ART/pinned-manifest.xml"
+
+          # Hash every file exactly once; exclude the checksum files themselves.
+          (
+            cd "$ART"
+            find . -maxdepth 1 -type f ! -name 'MD5SUMS.txt' ! -name 'SHA256SUMS.txt' \
+              -printf '%f\n' | sort | xargs md5sum > MD5SUMS.txt
+            find . -maxdepth 1 -type f ! -name 'MD5SUMS.txt' ! -name 'SHA256SUMS.txt' \
+              -printf '%f\n' | sort | xargs sha256sum > SHA256SUMS.txt
+          )
+          ls -lah "$ART"
+
+      - name: Upload build artifacts
+        if: success()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: twrp-${{ env.DEVICE }}-${{ github.run_number }}
+          path: ${{ github.workspace }}/artifacts/*
+          if-no-files-found: error
+          compression-level: 0
+          retention-days: 30
+
+      - name: Upload logs on failure
+        if: failure()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: build-logs-${{ github.run_number }}
+          path: |
+            ~/twrp/out/verbose.log.gz
+            ~/twrp/out/error.log
+            ~/twrp/out/soong.log
+          if-no-files-found: ignore
+          retention-days: 14
+
+  release:
+    name: Publish release
+    needs: build
+    if: success()
+    runs-on: ubuntu-22.04
+    permissions:
+      contents: write
+
+    steps:
+      - name: Download build artifacts
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
+        with:
+          name: twrp-a146p-${{ github.run_number }}
+          path: artifacts
+
+      - name: Create GitHub release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_REPO: ${{ github.repository }}
+        run: |
+          set -euxo pipefail
+          TAG="${{ startsWith(github.ref, 'refs/tags/v') && github.ref_name || format('build-{0}', github.run_number) }}"
+          gh release create "$TAG" artifacts/* \
+            --title "TWRP a146p — $TAG" \
+            --notes "Automated TWRP build for Samsung Galaxy A14 5G (SM-A146P / a146p). Run #${{ github.run_number }}, commit \`${GITHUB_SHA}\`. Flash a patched vbmeta first; see README.md." \
+            --latest

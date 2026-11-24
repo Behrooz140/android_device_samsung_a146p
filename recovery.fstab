@@ -1,0 +1,85 @@
+#
+# TWRP fstab - Samsung Galaxy A14 5G (SM-A146P / a146p)
+# MediaTek MT6833 - Android 15 / One UI 7
+#
+# Partition names and mount options come from the stock recovery ramdisk:
+#   system/etc/recovery.fstab (build A146PXXULEZJ3).
+# The file uses TWRP's v1-style layout: <mount point> <fs> <device> flags=...
+# TWRP probes the real filesystem at mount time, so one entry per mount point
+# is enough; duplicate mount points confuse the partition parser.
+#
+# fsflags=ro is required on every logical (super) partition: Samsung marks
+# them read-only in the super metadata (liblp attr 0x1), so a read-write
+# mount(2) fails with EACCES. wipeingui makes them appear in Advanced Wipe.
+# Backup is intentionally NOT enabled for logical partitions; TWRP disables
+# backup for super and a "successful" backup would be misleading.
+#
+
+# ---------------------------------------------------------------------------
+# Dynamic (logical) partitions inside super
+# ---------------------------------------------------------------------------
+/system         erofs   system          flags=display=system;logical;flashimg=1;fsflags=ro;wipeingui
+/vendor         erofs   vendor          flags=display=vendor;logical;flashimg=1;fsflags=ro;wipeingui
+/product        erofs   product         flags=display=product;logical;flashimg=1;fsflags=ro;wipeingui
+/odm            erofs   odm             flags=display=odm;logical;flashimg=1;fsflags=ro;wipeingui
+/system_ext     erofs   system_ext      flags=display=system_ext;logical;flashimg=1;fsflags=ro;wipeingui
+/system_dlkm    erofs   system_dlkm     flags=display=system_dlkm;logical;flashimg=1;fsflags=ro;wipeingui
+/vendor_dlkm    erofs   vendor_dlkm     flags=display=vendor_dlkm;logical;flashimg=1;fsflags=ro;wipeingui
+/odm_dlkm       erofs   odm_dlkm        flags=display=odm_dlkm;logical;flashimg=1;fsflags=ro;wipeingui
+
+# ---------------------------------------------------------------------------
+# Boot / recovery / bootloader helper images
+# ---------------------------------------------------------------------------
+/boot           emmc    /dev/block/by-name/boot          flags=display=boot;backup=1;flashimg=1
+/recovery       emmc    /dev/block/by-name/recovery      flags=display=recovery;backup=1;flashimg=1
+/init_boot      emmc    /dev/block/by-name/init_boot     flags=display=init_boot;backup=1;flashimg=1
+/vendor_boot    emmc    /dev/block/by-name/vendor_boot   flags=display=vendor_boot;backup=1;flashimg=1
+/dtbo           emmc    /dev/block/by-name/dtbo          flags=display=dtbo;backup=1;flashimg=1
+/vbmeta_samsung emmc    /dev/block/by-name/vbmeta_samsung flags=display=vbmeta_samsung;flashimg=1
+/misc           emmc    /dev/block/by-name/misc          flags=display=misc
+
+# ---------------------------------------------------------------------------
+# Data / cache / metadata
+# ---------------------------------------------------------------------------
+# /data is FBE v2 with metadata encryption; it cannot be mounted until the
+# keys are unlocked. Decryption is not implemented in this tree yet.
+/data           f2fs    /dev/block/by-name/userdata      flags=display=data;backup=1;wipeingui;canbewiped;storage;length=-16384
+/cache          ext4    /dev/block/by-name/cache         flags=display=cache;backup=1;wipeingui;canbewiped
+/metadata       ext4    /dev/block/by-name/metadata      flags=display=metadata;wipeingui;canbewiped
+
+# ---------------------------------------------------------------------------
+# Samsung ODE / calibration / FOTA partitions
+#
+# NEVER enable wipeingui or canbewiped on efs, persist or nvdata: they hold
+# IMEI, radio calibration and sensor data and cannot be recovered once erased.
+# These entries are read-only and exist only so they can be backed up.
+# ---------------------------------------------------------------------------
+/efs            ext4    /dev/block/by-name/sec_efs       flags=display=efs;backup=1;fsflags=ro
+/persist        ext4    /dev/block/by-name/persist       flags=display=persist;backup=1;fsflags=ro
+/nvdata         ext4    /dev/block/by-name/nvdata        flags=display=nvdata;backup=1;fsflags=ro
+/carrier        ext4    /dev/block/by-name/carrier       flags=display=carrier;backup=1;fsflags=ro
+/preload        ext4    /dev/block/by-name/hidden        flags=display=preload;backup=1;fsflags=ro
+/keydata        ext4    /dev/block/by-name/keydata       flags=display=keydata;backup=1;fsflags=ro
+/keyrefuge      f2fs    /dev/block/by-name/keyrefuge     flags=display=keyrefuge;backup=1;fsflags=ro
+
+# FOTA / modem helpers
+/modem          emmc    /dev/block/by-name/apnhlos       flags=display=modem;backup=1
+/mdm            emmc    /dev/block/by-name/modem         flags=display=mdm;backup=1
+/dsp            emmc    /dev/block/by-name/dsp           flags=display=dsp;backup=1
+/md1img         emmc    /dev/block/by-name/md1img        flags=display=md1img;backup=1
+/spmfw          emmc    /dev/block/by-name/spmfw         flags=display=spmfw;backup=1
+/scp1           emmc    /dev/block/by-name/scp1          flags=display=scp1;backup=1
+/sspm_1         emmc    /dev/block/by-name/sspm_1        flags=display=sspm_1;backup=1
+/gz1            emmc    /dev/block/by-name/gz1           flags=display=gz1;backup=1
+/optics         ext4    /dev/block/by-name/optics        flags=display=optics;backup=1;fsflags=ro
+/prism          ext4    /dev/block/by-name/prism         flags=display=prism;backup=1;fsflags=ro
+/cam_vpu1       emmc    /dev/block/by-name/cam_vpu1      flags=display=cam_vpu1;backup=1
+/cam_vpu2       emmc    /dev/block/by-name/cam_vpu2      flags=display=cam_vpu2;backup=1
+/cam_vpu3       emmc    /dev/block/by-name/cam_vpu3      flags=display=cam_vpu3;backup=1
+/pi_img         emmc    /dev/block/by-name/pi_img        flags=display=pi_img;backup=1
+
+# ---------------------------------------------------------------------------
+# MicroSD (kept at /external_sd so it does not collide with /sdcard, which
+# TWRP maps onto /data/media when RECOVERY_SDCARD_ON_DATA is set).
+# ---------------------------------------------------------------------------
+/external_sd    vfat    /dev/block/mmcblk1p1 /dev/block/mmcblk1 flags=display="MicroSD";storage;wipeingui;removable;backup=1

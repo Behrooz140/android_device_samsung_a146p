@@ -1,0 +1,14 @@
+# Build outputs
+out/
+.work/
+
+# Local ROM / firmware images (never commit vendor blobs)
+*.img
+!prebuilt/dtb.img
+!prebuilt/dtbo.img
+
+# Editor / OS noise
+*~
+*.orig
+*.rej
+.DS_Store

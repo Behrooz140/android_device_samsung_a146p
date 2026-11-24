@@ -1,50 +1,54 @@
 # TWRP device tree — Samsung Galaxy A14 5G (SM-A146P / `a146p`)
 
-> **وضعیت فعلی:** درخت پایه ساخته شده است. هنوز بیلد نشده و روی دستگاه تست نشده است.
-> رمزگشایی `/data` و پچهای TWRP هنوز پورت نشدهاند (بخش ۷ را ببینید).
+> **Status:** base tree only. The first CI build is in progress and the tree has
+> not been tested on the device yet. `/data` decryption and TWRP source patches
+> have not been ported (see [Current status](#8-current-status)).
+
+A Persian translation is available in [README.fa.md](README.fa.md).
 
 ---
 
-## ۱) مشخصات دستگاه
+## 1) Device specifications
 
-| مورد | مقدار |
+| Item | Value |
 |---|---|
-| مدل | Samsung Galaxy A14 5G |
-| مدل تجاری | `SM-A146P` |
-| نام محصول سامسونگ | `a14xmxx` / `a14xm` |
-| نام درخت TWRP | `a146p` |
-| چیپست | MediaTek **MT6833** (Dimensity 700) |
-| معماری | arm64-v8a + armeabi-v7a |
-| اندروید | ۱۵ (One UI 7)، SDK 35 |
-| بیلد استوک | `A146PXXULEZJ3` / `AP3A.240905.015.A2` |
-| سطح امنیتی | `2026-09-05` |
-| fingerprint | `samsung/a14xmxx/a14xm:15/AP3A.240905.015.A2/A146PXXULEZJ3:user/release-keys` |
-| تراکم صفحه | 450 dpi |
-| اندازه پارتیشن recovery | ۴۱۹۴۳۰۴۰ بایت |
-| اندازه پارتیشن boot | ۳۳۵۵۴۴۳۲ بایت |
+| Model | Samsung Galaxy A14 5G |
+| Model number | `SM-A146P` |
+| Samsung product name | `a14xmxx` / `a14xm` |
+| TWRP device name | `a146p` |
+| Chipset | MediaTek **MT6833** (Dimensity 700) |
+| Architecture | arm64-v8a + armeabi-v7a |
+| Android | 15 (One UI 7), SDK 35 |
+| Stock build | `A146PXXULEZJ3` / `AP3A.240905.015.A2` |
+| Security patch | `2026-09-05` |
+| Fingerprint | `samsung/a14xmxx/a14xm:15/AP3A.240905.015.A2/A146PXXULEZJ3:user/release-keys` |
+| Screen density | 450 dpi |
+| Recovery partition | 41,943,040 bytes |
+| Boot partition | 33,554,432 bytes |
 
 ---
 
-## ۲) منبع فایلها
+## 2) Source of the prebuilts
 
-تمام فایلهای `prebuilt/` مستقیماً از `recovery.img` استوک همین دستگاه استخراج
-شدهاند (نه از اینترنت و نه از دستگاه مشابه دیگری).
+Everything in `prebuilt/` was extracted directly from this phone's own stock
+`recovery.img` — nothing was downloaded and no similar device was used as a
+source.
 
-| فایل | اندازه (بایت) | MD5 |
+| File | Size (bytes) | MD5 |
 |---|---:|---|
-| `prebuilt/kernel` | ۱۴٬۰۹۲٬۷۹۹ | `40d6b66f8aaeae274197748032b2a141` |
-| `prebuilt/dtb.img` | ۲۰۱٬۷۷۵ | `c242c18278a5de98c972069e902935e6` |
-| `prebuilt/dtbo.img` | ۵۱٬۶۱۸ | `58b05a34865d2db035da366d00010147` |
-| `prebuilt/modules/` | ۲۴ MB | ۱۸۵ فایل `.ko` + ۴ فایل متادیتا |
+| `prebuilt/kernel` | 14,092,799 | `40d6b66f8aaeae274197748032b2a141` |
+| `prebuilt/dtb.img` | 201,775 | `c242c18278a5de98c972069e902935e6` |
+| `prebuilt/dtbo.img` | 51,618 | `58b05a34865d2db035da366d00010147` |
+| `prebuilt/modules/` | 24 MB | 185 `.ko` files + 4 metadata files |
 
-ورژن کرنل: `6.6.127-android15-8-abA146PXXULEZJ3-4k`
+Kernel version: `6.6.127-android15-8-abA146PXXULEZJ3-4k`
 
-### هش ایمیجهای استوک تحویلدادهشده
+### Hashes of the supplied stock images
 
-ایمیجها و ramdisk استخراجشده **خارج از درخت** در `/root/a146p_stock_images/` نگهداری
-میشوند و وارد مخزن نمیشوند.
+The stock images and the extracted ramdisk are kept **outside the device tree**
+in `/root/a146p_stock_images/` on the build machine. They are never committed.
 
-| ایمیج | MD5 |
+| Image | MD5 |
 |---|---|
 | `recovery.img` | `ecceb5b20f0ea2935a43d0f5c6f1988f` |
 | `boot.img` | `4db0c14f81f11b70196cc45a24e34a0a` |
@@ -53,14 +57,15 @@
 | `dtbo.img` | `fe8f1179a650358bcf525423b4369042` |
 | `vbmeta.img` | `abc7a3ecb0a4cb47e3f5266be0128a79` |
 
-> ایمیجها نباید در مخزن کامیت شوند (`.gitignore` آنها را مستثنی میکند).
+Stock images must not be committed (`.gitignore` excludes them; the two
+`prebuilt/*.img` blobs are explicitly re-included).
 
 ---
 
-## ۳) هدر بوت
+## 3) Boot header
 
-مقادیر زیر از هدر `recovery.img` استوک خوانده شدهاند و در `BoardConfig.mk`
-تنظیم شدهاند:
+These values were read from the stock `recovery.img` header and are set in
+`BoardConfig.mk`:
 
 ```
 header version : 2
@@ -75,12 +80,13 @@ cmdline        : bootopt=64S3,32N2,64N2 loop.max_part=7
 ramdisk format : gzip
 ```
 
-cmdline عمداً دقیقاً همان چیزی است که استوک دارد. `androidboot.selinux=permissive`
-اضافه نشده است؛ TWRP خودش SELinux را در init permissive میکند.
+The cmdline is deliberately byte-for-byte identical to stock.
+`androidboot.selinux=permissive` is **not** appended: TWRP switches SELinux to
+permissive in its own init, without modifying the boot header.
 
 ---
 
-## ۴) ساختار درخت
+## 4) Tree structure
 
 ```
 device/samsung/a146p/
@@ -96,11 +102,11 @@ device/samsung/a146p/
 │   ├── kernel
 │   ├── dtb.img
 │   ├── dtbo.img
-│   └── modules/          ← 185 ماژول + modules.alias/dep/softdep/load.recovery
+│   └── modules/          ← 185 modules + modules.alias/dep/softdep/load.recovery
 ├── recovery/root/
 │   ├── init.recovery.mt6833.rc
 │   ├── init.recovery.samsung.rc
-│   ├── sbin/twrp-diag.sh          ← لاگ تشخیصی بوت (فقط /tmp و /cache)
+│   ├── sbin/twrp-diag.sh          ← boot diagnostics (/tmp and /cache only)
 │   └── system/
 │       ├── bin/usb_restrict.sh
 │       └── etc/twrp.flags
@@ -111,111 +117,134 @@ device/samsung/a146p/
     └── stock_recovery.fstab
 ```
 
-برای استخراج مجدد prebuiltها:
+To re-extract the prebuilts:
 
 ```sh
-python3 tools/extract_from_recovery.py /root/a146p_stock_images/recovery.img
+python3 tools/extract_from_recovery.py /path/to/recovery.img
 ```
 
-اسکریپت ورودیهای CPIO ناامن (مسیر مطلق، `..` و symlink خارج از رamdisk) را رد
-میکند و فقط داخل همین درخت مینویسد.
+The extractor rejects unsafe CPIO entries (absolute paths, `..` and symlinks
+pointing outside the ramdisk) and places its temporary unpack directory next
+to the images, outside the tree.
 
 ---
 
-## ۵) بیلد
+## 5) Building
 
-در GitHub Actions: تب Actions → Run workflow. خروجیها:
+### GitHub Actions
+
+Open the **Actions** tab and run the workflow (`Run workflow`), or push a `v*`
+tag. Outputs:
 
 - `recovery.img`
-- `twrp_a146p.tar.md5` (برای Odin، جایگاه AP)
-- `pinned-manifest.xml` (کامیت دقیق منابع استفادهشده)
+- `twrp_a146p.tar.md5` (Odin package, AP slot)
+- `pinned-manifest.xml` (exact source revisions used by that build)
 - `MD5SUMS.txt` / `SHA256SUMS.txt`
 
-محلی:
+The workflow pins Actions to commit SHAs, verifies the `repo` launcher against
+a fixed SHA256, does not use `--no-repo-verify`, and splits build (read-only)
+and release (write) permissions. Patches are **not** applied automatically
+until they have been rebased and tested against the exact source revision.
+
+### Local
 
 ```sh
 repo init -u https://github.com/minimal-manifest-twrp/platform_manifest_twrp_aosp.git -b twrp-12.1
 repo sync -c -j$(nproc)
 mkdir -p device/samsung
-ln -s /root/android_device_samsung_a146p device/samsung/a146p
+ln -s "$(pwd)" device/samsung/a146p      # from this device tree's directory
 . build/envsetup.sh
 lunch twrp_a146p-eng
 mka recoveryimage -j$(nproc)
 ```
 
-> workflow اکشنها را با SHA ثابت پین میکند، هش `repo` را چک میکند و از
-> `--no-repo-verify` استفاده نمیکند. پچها بهطور خودکار اعمال نمیشوند تا زمانی
-> که روی نسخهٔ دقیق منابع rebase و تست شوند.
-
 ---
 
-## ۶) فلش
+## 6) Flashing
 
-1. بوتلودر باید آنلاک شده باشد.
-2. vbmeta استوک امضاشده با کلید سامسونگ است؛ تصویر ساختهشده با کلید تست TWRP
-   verify نمیشود. قبل از فلش vbmeta را patch/disable کنید:
+1. The bootloader must be unlocked.
+2. Stock vbmeta is signed with the Samsung key; an image built with TWRP's test
+   key will not verify against it. Patch/disable verification first:
 
    ```sh
-   fastboot flash vbmeta vbmeta.img   # vbmeta اصلاحشده
+   fastboot flash vbmeta vbmeta.img      # patched vbmeta
    ```
 
-   یا در هر فلش: `fastboot --disable-verity --disable-verification flash vbmeta vbmeta.img`
+   or, for a one-off boot:
 
-3. فلش ریکاوری:
+   ```sh
+   fastboot --disable-verity --disable-verification flash vbmeta vbmeta.img
+   ```
+
+3. Flash recovery:
 
    ```sh
    fastboot flash recovery recovery.img
    fastboot reboot recovery
    ```
 
-   یا `twrp_a146p.tar.md5` را در جایگاه AP با Odin فلش کنید.
+   Alternatively flash `twrp_a146p.tar.md5` in Odin's **AP** slot.
 
-هیچگاه `preloader`، `lk`، `tee1` یا `tzar` را فلش نکنید.
+Never flash `preloader`, `lk`, `tee1` or `tzar` — doing so can hard-brick the
+device.
 
 ---
 
-## ۷) وضعیت قابلیتها
+## 7) Verified boot / identity notes
 
-| قابلیت | وضعیت |
+`BoardConfig.mk` uses `BOARD_AVB_MAKE_VBMETA_IMAGE_ARGS += --flags 3` and the
+AOSP test key, and sets future security patch values plus `PLATFORM_VERSION :=
+16.1.0` so the build is not blocked by an older installed patch level. These
+are build-time values only; they do not change Android's real version reported
+by the running system (which is read at boot via `TW_OVERRIDE_SYSTEM_PROPS`).
+
+---
+
+## 8) Current status
+
+| Feature | Status |
 |---|---|
-| بوت، نمایش، تاچ، ذخیرهسازی | پیشبینی کارکرد (بر اساس ماژولهای استوک) — تست نشده |
-| پارتیشنهای منطقی `super` | mount فقطخواندنی و `flashimg` در fstab تنظیم شده |
-| `fastbootd` | فعال |
-| MTP / ADB | قواعد configfs در init rc اضافه شده |
-| ویبره | در init خاموش میشود تا موتور روشن نماند |
-| `/data` decryption | ❌ پیادهسازی نشده |
-| بکاپ از پارتیشنهای منطقی | ❌ عمداً غیرفعال است |
-| لاگ تشخیصی بوت | ✅ `sbin/twrp-diag.sh` |
+| Boot, display, touch, storage | Expected to work (stock modules); not tested yet |
+| Logical (`super`) partitions | Read-only mount and `flashimg` configured in fstab |
+| `fastbootd` | Enabled |
+| MTP / ADB | configfs rules added in init rc |
+| Vibrator | Turned off in init so the motor cannot stay on |
+| `/data` decryption | ❌ Not implemented |
+| Backup of logical partitions | ❌ Intentionally disabled |
+| Boot diagnostics | ✅ `sbin/twrp-diag.sh` |
 
-### گرفتن لاگ وقتی بوت نشد
+### Getting logs when the device will not boot
 
-سرویس `twrpdiag` حدود ۲۰ ثانیه بعد از بوت اجرا میشود و خروجی را فقط در
-`/cache/twrp-diag` میگذارد (و یک کپی موقت در `/tmp/twrp-diag`). برخلاف نسخهٔ
-قدیمی `a14m`، این اسکریپت `/metadata` را rw نمیکند، هدر پارتیشنها و فایل
-`.twrps` را نمیخواند، لاگ TEE را کپی نمیکند و ویبره را دستکاری نمیکند.
+The `twrpdiag` service runs about 20 seconds after boot and writes only to
+`/cache/twrp-diag` (plus a volatile copy in `/tmp/twrp-diag`). Unlike the older
+`a14m` script, it never mounts `/metadata` read-write, never dumps raw partition
+headers or `.twrps`, never copies TEE logs and never touches the vibrator.
 
 ```sh
 adb pull /cache/twrp-diag/diag.txt
 adb pull /tmp/recovery.log
 ```
 
-اگر TWRP اصلاً بالا نیامد، بعد از ریبوت به سیستم همان `diag.txt` شامل
-`/proc/last_kmsg` (لاگ کرنل بوت قبل) هم هست. قبل از ارسال لاگ آن را بررسی کنید،
-چون `dmesg` میتواند شناسهٔ دستگاه را نشان دهد.
+If TWRP does not start at all, `diag.txt` pulled after rebooting into the system
+also includes `/proc/last_kmsg` (the previous boot's kernel log). Review the log
+before sharing it: `dmesg` may contain device identifiers.
 
-### کارهای باقیمانده
+### Remaining work
 
-1. بیلد اول و تست بوت روی دستگاه.
-2. پچهای عمومی TWRP (مخصوصاً مربوط به logical partitions و wipe) را روی
-   کامیت دقیق منابع rebase و تست کردن.
-3. پورت stack رمزگشایی (TEEGRIS + KeyMint + gatekeeper) از درخت `a14m`، در
-   صورتی که فایلهای مربوطه از دستگاه A146P در دسترس باشند.
-4. تأیید اندازه دقیق `super` با `lsblk -b` یا `fastboot getvar all` روی دستگاه.
-5. بررسی وجود پارتیشنهای `carrier`, `hidden`, `keydata`, `keyrefuge` در fstab.
+1. Finish the first build and test boot on the device.
+2. Rebase and test the generic TWRP patches (especially logical partitions and
+   wipe handling) against the exact source revision used by CI.
+3. Port the decryption stack (TEEGRIS + KeyMint + gatekeeper) from the `a14m`
+   tree, if the corresponding A146P binaries become available.
+4. Confirm the exact `super` partition size with `lsblk -b` or
+   `fastboot getvar all` on the device; the current value is a placeholder.
+5. Verify whether `carrier`, `hidden`, `keydata` and `keyrefuge` exist on this
+   variant before relying on their fstab entries.
 
 ---
 
-## ۸) نکته دربارهٔ پارتیشنهای حساس
+## 9) Sensitive partitions
 
-`efs`، `persist` و `nvdata` حاوی IMEI و کالیبراسیون رادیو هستند. در fstab فقط
-برای بکاپ و بهصورت فقطخواندنی تعریف شدهاند و نباید گزینهٔ wipe برایشان فعال شود.
+`efs`, `persist` and `nvdata` contain IMEI, radio calibration and sensor data.
+They are defined in `recovery.fstab` read-only, for backup only; wipe must never
+be enabled for them.

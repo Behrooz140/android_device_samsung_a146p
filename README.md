@@ -214,9 +214,12 @@ by the running system (which is read at boot via `TW_OVERRIDE_SYSTEM_PROPS`).
 | Boot diagnostics | ✅ `sbin/twrp-diag.sh` |
 
 To fit the stock 40 MiB recovery partition, optional extras (`NTFS-3G`,
-`lptools`, repack tools and extra languages) are disabled. They are not needed
-for flashing, wiping, sideload, backup or restore on A146P and may be enabled
-later if an A146P-specific use case is confirmed and the image still fits.
+`lptools`, `lpdump`, `nano`, the standalone `zip` tool, repack tools, extra
+languages and the whole crypto/keystore2 stack) are disabled. None of them is
+needed for flashing, wiping, sideload, backup or restore on A146P. They may be
+enabled later if an A146P-specific use case is confirmed and the image still
+fits. With crypto disabled, `/data` remains unreadable in TWRP until the
+A146P-specific decryption stack is ported.
 
 ### Getting logs when the device will not boot
 

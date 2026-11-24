@@ -198,8 +198,13 @@ TW_INCLUDE_RESETPROP := true
 # 40 MiB recovery partition. They can be enabled later if a verified A146P
 # need appears and the image still fits.
 TW_INCLUDE_NTFS_3G := false
-TW_INCLUDE_LPTOOLS := false
 TW_INCLUDE_REPACKTOOLS := false
+# TWRP's Android.mk tests these with `ifeq ($(TW_EXCLUDE_LPTOOLS),)`, so the
+# exclusion variable must be set; a false TW_INCLUDE_LPTOOLS is ignored.
+TW_EXCLUDE_LPTOOLS := true
+TW_EXCLUDE_LPDUMP := true
+TW_EXCLUDE_NANO := true
+TW_EXCLUDE_ZIP := true
 TW_EXCLUDE_TWRPAPP := true
 # The 6.6 kernel rejects TWRP's APEX loop loader ("Value too large for
 # defined data type"); nothing here needs APEX libraries.
@@ -218,10 +223,11 @@ TW_OVERRIDE_SYSTEM_PROPS := \
 # ----------------------------------------------------------------------------
 # Crypto (FBE + metadata encryption)
 # ----------------------------------------------------------------------------
-# Keep FBE support so TWRP recognizes /data as encrypted and shows the
-# password prompt. TWRP's own metadata-decrypt path is disabled because it
-# waits for keystore2, which is not available in recovery on this device.
-# /data decryption itself is not implemented yet (see README.md).
-TW_INCLUDE_CRYPTO := true
-TW_INCLUDE_CRYPTO_FBE := true
+# Decryption is deferred until A146P-specific KeyMint/gatekeeper blobs are
+# available. TWRP's Android.mk adds keystore2, vold helpers and binder services
+# whenever TW_INCLUDE_CRYPTO is merely non-empty, so `false` would NOT disable
+# them. Leaving the variable empty removes that whole stack and saves several
+# MiB, which is required to fit the stock 40 MiB recovery partition.
+TW_INCLUDE_CRYPTO :=
+TW_INCLUDE_CRYPTO_FBE :=
 TW_INCLUDE_FBE_METADATA_DECRYPT := false

@@ -126,6 +126,8 @@ def main():
         key = os.path.basename(rel).replace(".img", "")
         actual = md5(info[key])
         check("%s unchanged" % rel, actual == expected, actual)
+    check("recovery_dtbo matches stock", md5(info["dtbo"]) ==
+          STOCK_MD5["prebuilt/dtbo.img"], md5(info["dtbo"]))
 
     try:
         cpio = decompress(info["ramdisk"])
@@ -178,9 +180,14 @@ def main():
           "changed: %s" % ", ".join(changed[:8]) if changed else "")
     load_entry = entries.get("lib/modules/modules.load.recovery", (0, b""))
     load_names = set(load_entry[1].decode("utf-8", "replace").split())
-    unlisted = [fn for fn in modules if fn.endswith(".ko") and fn not in load_names]
-    check("all .ko files are in modules.load.recovery", not unlisted,
-          "unlisted: %s" % ", ".join(unlisted[:8]) if unlisted else "")
+    ko_names = {fn for fn in modules if fn.endswith(".ko")}
+    unlisted = sorted(ko_names - load_names)
+    stale = sorted(load_names - ko_names)
+    check("modules.load.recovery lists exactly the stock modules",
+          not unlisted and not stale,
+          "unlisted: %s; stale: %s" % (", ".join(unlisted[:8]),
+                                        ", ".join(stale[:8]))
+          if (unlisted or stale) else "")
 
     for special in ("regulator-vibrator.ko", "clk-mt6833.ko"):
         check("module %s present" % special,
@@ -215,13 +222,58 @@ def main():
           "import /init.recovery.samsung.rc" in initrc)
     check("init rc configfs USB rules", "sys.usb.configfs" in initrc)
 
-    for required in ("init", "sbin/twrp-diag.sh",
-                     "system/bin/usb_restrict.sh"):
-        check("entry %s present" % required, required in entries)
+    required = (
+        "init", "default.prop", "system/etc/twrp.flags",
+        "system/etc/recovery.fstab", "init.recovery.samsung.rc",
+        "sbin/twrp-diag.sh", "system/bin/usb_restrict.sh",
+    )
+    missing_entries = [name for name in required if name not in entries]
+    check("all %d required recovery entries present" % len(required),
+          not missing_entries,
+          "missing: %s" % ", ".join(missing_entries) if missing_entries else "")
+
+    required_tools = (
+        "twrp", "recovery", "fastbootd", "toolbox", "toybox", "unzip",
+        "mke2fs", "e2fsck", "resize2fs", "make_f2fs", "fsck.f2fs",
+        "sload_f2fs",
+    )
+    basenames = {os.path.basename(name) for name in entries}
+    missing_tools = [name for name in required_tools if name not in basenames]
+    check("all %d required recovery tools present" % len(required_tools),
+          not missing_tools,
+          "missing: %s" % ", ".join(missing_tools) if missing_tools else "")
     check("twrpdiag is executable",
           bool(entries.get("sbin/twrp-diag.sh", (0, b""))[0] & 0o111))
 
-    # 5. No leftover stock flashable images inside the ramdisk.
+    # 5. Verify the build's own complete ramdisk manifest, when present. This
+    #    catches any file that was silently dropped or modified by packaging.
+    manifest = entries.get("ramdisk-files.sha256sum", (0, b""))[1]
+    if manifest:
+        bad_hashes = []
+        checked = 0
+        for line in manifest.decode("utf-8", "replace").splitlines():
+            parts = line.split(None, 1)
+            if len(parts) != 2:
+                bad_hashes.append("malformed: " + line)
+                continue
+            want_hash, name = parts
+            name = name.strip()
+            if name.startswith("./"):
+                name = name[2:]
+            if name in ("ramdisk-files.sha256sum", "prop.default") or \
+                    name.startswith("lib/modules/"):
+                continue
+            if name not in entries:
+                bad_hashes.append("missing " + name)
+                continue
+            checked += 1
+            if hashlib.sha256(entries[name][1]).hexdigest() != want_hash:
+                bad_hashes.append("hash " + name)
+        check("ramdisk manifest hashes (%d files)" % checked,
+              not bad_hashes,
+              "; ".join(bad_hashes[:8]) if bad_hashes else "")
+
+    # 6. No leftover stock flashable images inside the ramdisk.
     stray = [n for n in entries if n.endswith(".img") and
              n.startswith(("boot", "recovery", "vendor_boot", "vbmeta"))]
     check("no stock images packed into ramdisk", not stray, ", ".join(stray))

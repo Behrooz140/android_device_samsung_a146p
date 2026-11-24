@@ -85,9 +85,10 @@ BOARD_MKBOOTIMG_ARGS += --board SRPVH12A021
 BOARD_MKBOOTIMG_ARGS += --os_version 15.0.0 --os_patch_level 2026-09
 
 # AOSP's core/Makefile appends "buildvariant=$(TARGET_BUILD_VARIANT)" to
-# INTERNAL_KERNEL_CMDLINE. Make's last assignment wins, so restoring the stock
-# cmdline here keeps the final boot header byte-for-byte identical to stock.
-INTERNAL_KERNEL_CMDLINE := $(BOARD_KERNEL_CMDLINE)
+# INTERNAL_KERNEL_CMDLINE after BoardConfig.mk is parsed. BOARD_MKBOOTIMG_ARGS
+# is passed later on the mkbootimg command line, and mkbootimg uses the last
+# --cmdline argument, so this restores the stock boot header byte-for-byte.
+BOARD_MKBOOTIMG_ARGS += --cmdline "$(BOARD_KERNEL_CMDLINE)"
 
 TARGET_FORCE_PREBUILT_KERNEL := true
 TARGET_PREBUILT_KERNEL := $(DEVICE_PATH)/prebuilt/kernel

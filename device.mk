@@ -18,7 +18,6 @@ PRODUCT_SOONG_NAMESPACES += device/samsung/a146p
 PRODUCT_COPY_FILES += \
     $(LOCAL_PATH)/recovery/root/init.recovery.mt6833.rc:recovery/root/init.recovery.mt6833.rc \
     $(LOCAL_PATH)/recovery/root/init.recovery.samsung.rc:recovery/root/init.recovery.samsung.rc \
-    $(LOCAL_PATH)/recovery/root/sbin/twrp-diag.sh:recovery/root/sbin/twrp-diag.sh \
     $(LOCAL_PATH)/recovery/root/system/etc/twrp.flags:recovery/root/system/etc/twrp.flags
 
 # Prebuilt kernel modules from the stock recovery ramdisk. They must match

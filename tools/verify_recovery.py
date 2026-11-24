@@ -220,6 +220,8 @@ def main():
     initrc = entries.get("init.recovery.mt6833.rc", (0, b""))[1].decode(
         "utf-8", "replace")
     check("init rc defines twrpdiag service", "service twrpdiag" in initrc)
+    check("twrpdiag is invoked through /system/bin/sh",
+          "/system/bin/sh /sbin/twrp-diag.sh" in initrc)
     check("init rc defines usb-restrict service",
           "service usb-restrict" in initrc)
     check("init rc imports Samsung rc",
@@ -246,8 +248,10 @@ def main():
     check("all %d required recovery tools present" % len(required_tools),
           not missing_tools,
           "missing: %s" % ", ".join(missing_tools) if missing_tools else "")
-    check("twrpdiag is executable",
-          bool(entries.get("sbin/twrp-diag.sh", (0, b""))[0] & 0o111))
+    # The init service runs this script with /system/bin/sh, so it does not
+    # need the executable bit; 0644 is the correct packaged mode here.
+    check("twrpdiag script is readable by init",
+          bool(entries.get("sbin/twrp-diag.sh", (0, b""))[0] & 0o444))
 
     # 5. Verify the build's own complete ramdisk manifest, when present. This
     #    catches any file that was silently dropped or modified by packaging.

@@ -111,13 +111,17 @@ TARGET_COPY_OUT_VENDOR := vendor
 # sibling A14 tree and is only a safe placeholder for building this image.
 BOARD_SUPER_PARTITION_SIZE := 9126805504
 BOARD_SUPER_PARTITION_GROUPS := samsung_dynamic_partitions
+# NOTE: twrp-12.1's build/make/core/config.mk validates this list against
+# "system vendor product system_ext odm vendor_dlkm odm_dlkm". Stock has a
+# system_dlkm logical partition, but it must NOT be listed here: the build
+# fails with "invalid partition name system_dlkm". It can still be mounted in
+# TWRP via recovery.fstab at runtime.
 BOARD_SAMSUNG_DYNAMIC_PARTITIONS_PARTITION_LIST := \
     system \
     system_ext \
     product \
     vendor \
     odm \
-    system_dlkm \
     vendor_dlkm \
     odm_dlkm
 BOARD_SAMSUNG_DYNAMIC_PARTITIONS_SIZE := 9122611200

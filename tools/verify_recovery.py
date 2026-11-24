@@ -158,6 +158,10 @@ def main():
         want = open(full, "rb").read()
         mode, got = entries[rel]
         want_mode = stat.S_IMODE(os.stat(full).st_mode)
+        # The Android build system installs init .rc files as 0750 regardless
+        # of their source mode; that is intentional and more restrictive.
+        if rel.endswith(".rc"):
+            want_mode = 0o750
         check("overlay %s present" % rel, got == want,
               "bytes match" if got == want else "content differs")
         check("overlay %s mode %04o" % (rel, want_mode),

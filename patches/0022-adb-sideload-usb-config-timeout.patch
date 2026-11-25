@@ -1,0 +1,19 @@
+--- a/twrpinstall/adb_install.cpp	2026-11-25 15:16:56.285585532 +0330
++++ b/twrpinstall/adb_install.cpp	2026-11-25 15:24:40.417585559 +0330
+@@ -17,6 +17,7 @@
+ #include "twinstall/adb_install.h"
+ 
+ #include <errno.h>
++#include <chrono>
+ #include <fcntl.h>
+ #include <signal.h>
+ #include <stdlib.h>
+@@ -63,7 +64,7 @@
+ 
+ static bool SetUsbConfig(const std::string& state) {
+   android::base::SetProperty("sys.usb.config", state);
+-  return android::base::WaitForProperty("sys.usb.state", state);
++  return android::base::WaitForProperty("sys.usb.state", state, std::chrono::milliseconds(30000));
+ }
+ 
+ // Parses the minadbd command in |message|; returns MinadbdCommand::kError upon errors.

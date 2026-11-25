@@ -206,6 +206,8 @@ by the running system (which is read at boot via `TW_OVERRIDE_SYSTEM_PROPS`).
 |---|---|
 | Boot, display, storage | ✅ Booted on real hardware; storage and logical partitions verified |
 | Touch | `focaltech_tp.ko` + firmware added; awaiting hardware retest |
+| Logical partitions / GSI | Wipe/flash patches for super/logical partitions added; awaiting hardware retest |
+| Reboot / fastbootd / sideload | BCB reboot + sideload USB timeout patches added; awaiting hardware retest |
 | Logical (`super`) partitions | Read-only mount and `flashimg` configured in fstab |
 | `fastbootd` | Enabled |
 | MTP / ADB | configfs rules added in init rc |

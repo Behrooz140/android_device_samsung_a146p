@@ -180,6 +180,8 @@ mka recoveryimage -j$(nproc)
 |---|---|
 | بوت، نمایش، ذخیرهسازی | ✅ روی دستگاه واقعی بوت شد؛ ذخیرهسازی و پارتیشنهای منطقی بررسی شدند |
 | تاچ | درایور `focaltech_tp.ko` بههمراه فریمور اضافه شد؛ منتظر تست مجدد روی دستگاه |
+| پارتیشن‌های منطقی / GSI | پچ‌های wipe/flash برای super/logical اضافه شد؛ منتظر تست سخت‌افزاری |
+| ریبوت / fastbootd / sideload | پچ‌های BCB reboot و timeout USB sideload اضافه شد؛ منتظر تست سخت‌افزاری |
 | پارتیشنهای منطقی `super` | mount فقطخواندنی و `flashimg` در fstab تنظیم شده |
 | `fastbootd` | فعال |
 | MTP / ADB | قواعد configfs در init rc اضافه شده |

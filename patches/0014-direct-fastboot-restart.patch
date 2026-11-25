@@ -1,0 +1,29 @@
+diff --git a/twrp-functions.cpp b/twrp-functions.cpp
+--- a/twrp-functions.cpp
++++ b/twrp-functions.cpp
+@@ -669,7 +669,24 @@
+ 			check_and_run_script("/system/bin/rebootedl.sh", "reboot edl");
+ 			return property_set(ANDROID_RB_PROPERTY, "reboot,edl");
+ 		case rb_fastboot:
+-			return property_set(ANDROID_RB_PROPERTY, "reboot,fastboot");
++			check_and_run_script("/system/bin/rebootfastboot.sh", "reboot fastboot");
++			// Samsung a146p: "reboot,fastboot" cannot work.  init has to
++			// write a bootloader control block with --fastboot before
++			// rebooting, but it parses /etc/recovery.fstab with fs_mgr
++			// while TWRP keeps its own format, so the BCB write fails and
++			// init restarts recovery instead.
++			//
++			// rebootfastboot.sh writes the BCB itself, then we restart with
++			// the reason "recovery" exactly like Reboot->Recovery does.  On
++			// the next boot TWRP reads that BCB (patch 0018 adds the
++			// /dev/block/by-name/misc fallback) and enters fastboot mode as
++			// a freshly started process, so no GUI state or inherited file
++			// descriptors can interfere.
++			syscall(__NR_reboot, LINUX_REBOOT_MAGIC1, LINUX_REBOOT_MAGIC2,
++					LINUX_REBOOT_CMD_RESTART2, "recovery");
++			// Only reached if the syscall was refused; the BCB is already
++			// written, so a plain reboot is the least surprising fallback.
++			return property_set(ANDROID_RB_PROPERTY, "reboot,");
+ 		default:
+ 			return -1;
+ 	}

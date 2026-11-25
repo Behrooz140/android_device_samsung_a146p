@@ -183,3 +183,5 @@
 /lib/modules/drm_display_helper.ko:
 /lib/modules/uload_ind.ko: /lib/modules/load_track.ko
 /lib/modules/mtk-mmdvfs-ftrace.ko:
+/lib/modules/sec_cmd.ko:
+/lib/modules/focaltech_tp.ko: /lib/modules/sec_cmd.ko /lib/modules/tp_notifier.ko

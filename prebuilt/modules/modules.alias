@@ -1678,3 +1678,5 @@ alias of:N*T*Cmediatek,mt6359p-auxadc mt635x_auxadc
 alias of:N*T*Cmediatek,mt6359p-auxadcC* mt635x_auxadc
 alias of:N*T*Cmediatek,battery_manager mtk_battery_manager
 alias of:N*T*Cmediatek,battery_managerC* mtk_battery_manager
+alias of:N*T*Cfocaltech,ft8722 focaltech_tp
+alias of:N*T*Cfocaltech,ft8722C* focaltech_tp

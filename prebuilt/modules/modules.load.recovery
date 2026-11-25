@@ -344,3 +344,5 @@ mtk-cqdma.ko
 wt_rp_value.ko
 wt_secboot_fuse.ko
 wt_em_status.ko
+sec_cmd.ko
+focaltech_tp.ko

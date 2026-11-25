@@ -72,8 +72,12 @@ def iter_newc(data):
             raise ValueError("truncated CPIO entry")
         raw = data[name_start:name_start + namesize]
         name = safe_name(raw)
-        if raw.rstrip(b"\0") != TRAILER:
-            yield name, mode, data[body:end]
+        if raw.rstrip(b"\0") == TRAILER:
+            # The archive ends here. Some mkbootfs releases pad the tail with
+            # more than one CPIO header worth of zeros; do not try to parse
+            # that padding as another entry.
+            break
+        yield name, mode, data[body:end]
         off = align(end, 4)
 
 

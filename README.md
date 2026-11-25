@@ -204,7 +204,8 @@ by the running system (which is read at boot via `TW_OVERRIDE_SYSTEM_PROPS`).
 
 | Feature | Status |
 |---|---|
-| Boot, display, touch, storage | Expected to work (stock modules); not tested yet |
+| Boot, display, storage | ✅ Booted on real hardware; storage and logical partitions verified |
+| Touch | ✅ `focaltech_tp.ko` + firmware added after the first hardware test |
 | Logical (`super`) partitions | Read-only mount and `flashimg` configured in fstab |
 | `fastbootd` | Enabled |
 | MTP / ADB | configfs rules added in init rc |
@@ -212,6 +213,13 @@ by the running system (which is read at boot via `TW_OVERRIDE_SYSTEM_PROPS`).
 | `/data` decryption | ❌ Not implemented |
 | Backup of logical partitions | ❌ Intentionally disabled |
 | Boot diagnostics | ✅ `sbin/twrp-diag.sh` |
+
+The first real-device test booted TWRP but had no touch. The stock recovery
+ramdisk only carries the grip-sensor driver (`hx9035.ko`); the actual touchscreen
+controller for the selected `ft8722` panel is a `vendor_dlkm` module. It is now
+included as `focaltech_tp.ko` together with its `sec_cmd.ko` dependency and the
+`focaltech_ft8722_fw_txd.bin` / `focaltech_ft8722_txd.ini` files, and is loaded
+from `modules.load.recovery` after `tp_notifier.ko`.
 
 To fit the stock 40 MiB recovery partition, optional extras (`NTFS-3G`,
 `lptools`, `lpdump`, `nano`, the standalone `zip` tool, repack tools, extra

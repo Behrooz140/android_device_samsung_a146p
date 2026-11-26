@@ -2,7 +2,7 @@
 
 TWRP device tree for Samsung Galaxy A14 5G (`SM-A146P`, codename `a146p`, MediaTek MT6833 / Dimensity 700).
 
-> **Status:** Booted on real hardware. Touch, logical-partition/GSI, reboot/fastbootd, and ADB sideload fixes were added in build-9 and need hardware retest. `/data` decryption is not implemented.
+> **Status:** Booted and verified on real hardware. Build-9 logs confirm fastbootd, reboot scripts, and logical partitions; the touch fix is carried over from build-8. Build-10 adds an on-demand USB-OTG host switch. `/data` decryption is not implemented.
 
 ## Latest release
 
@@ -101,21 +101,42 @@ Never flash `preloader`, `lk`, `tee1`, or `tzar`.
 |---|---|
 | Boot, display, storage | Booted on real hardware; storage/logical partitions verified |
 | Touch | FT8722 `focaltech_tp.ko` + firmware added; awaiting hardware retest |
-| Logical partitions / GSI | Super/logical wipe-flash patches added; awaiting hardware retest |
-| Reboot / fastbootd | BCB/misc reboot handling patches added; awaiting hardware retest |
-| ADB sideload | USB-state timeout guard added; detection/cancel behavior needs hardware retest |
-| `fastbootd` | Enabled |
-| MTP / ADB | Configfs rules present |
+| Logical partitions / GSI | Confirmed in build-9 hardware logs: dynamic partitions are prepared from `super` |
+| Reboot / fastbootd | Confirmed in build-9 hardware logs: BCB/misc writes succeed and TWRP enters fastbootd |
+| ADB sideload | USB-state timeout guard added; detection/cancel behavior still needs hardware retest |
+| `fastbootd` | Enabled; startup with `--fastboot` confirmed on hardware |
+| MTP / ADB | Configfs rules present; adb daemon confirmed running |
+| USB-OTG host | Disabled by default because `usb_restrict=1` forces device mode; build-10 adds `/system/bin/usb_role.sh host` |
 | `/data` decryption | Not implemented |
 | Backup of logical partitions | Intentionally disabled |
 
-## Build-9 fixes
+## Build-9 fixes (hardware-confirmed where noted)
 
 - **Touch:** Includes build-8 FT8722 touch fix (driver + firmware).
-- **Logical partitions / GSI:** Fixed wipe/flash handling for dynamic/super partitions, enabling proper image flashing to logical partitions (e.g., GSI to `system`).
-- **Reboot / Fastbootd:** Fixed reboot handling (BCB/misc fallback) for more reliable reboot to Recovery/Fastbootd.
+- **Logical partitions / GSI:** Fixed wipe/flash handling for dynamic/super partitions, enabling proper image flashing to logical partitions (e.g., GSI to `system`). Build-9 logs show all dynamic partitions prepared from `super`.
+- **Reboot / Fastbootd:** Fixed reboot handling (BCB/misc fallback). Build-9 logs show the reboot scripts writing the BCB correctly and TWRP entering fastbootd with `--fastboot`.
 - **ADB sideload:** Added a USB-state timeout guard to prevent sideload from getting stuck indefinitely; detection still needs hardware retest.
 - **Wipe behavior:** Dalvik/cache wipe no longer fails completely when `/data` cannot be mounted; empty/RO logical partition mount errors are handled more cleanly.
+
+## USB-OTG host mode
+
+The bootloader passes `usb_notify_layer.usb_restrict=1`, so `usb_restrict.sh`
+forces `cmode=3` (peripheral) at boot to keep adb/MTP working. That also keeps
+OTG VBUS off, so USB drives, mice, and keyboards will not power up.
+
+Build-10 adds `/system/bin/usb_role.sh` to override the role for the current
+boot:
+
+```sh
+adb shell /system/bin/usb_role.sh host    # cmode 2: OTG devices get 5 V, adb drops
+adb shell /system/bin/usb_role.sh auto    # cmode 1: Type-C/PD stack chooses
+adb shell /system/bin/usb_role.sh device  # cmode 3: restore adb/MTP
+adb shell /system/bin/usb_role.sh         # print current cmode
+```
+
+The same commands work from TWRP's Terminal. Run `host` **before** attaching the
+OTG device; a reboot always returns to device mode. This is a session switch,
+not a persisted setting.
 
 ## Diagnostics
 
@@ -130,7 +151,7 @@ Review logs before sharing; `dmesg` may contain device identifiers.
 
 ## Remaining work
 
-1. Hardware retest build-9: touch, reboot/fastbootd, sideload/cancel, auto-reboot, logical wipe, GSI flash to `system`.
+1. Hardware retest build-10: USB-OTG host switch, sideload/cancel, auto-reboot, logical wipe, GSI flash to `system`. Build-9 already confirmed fastbootd and reboot scripts.
 2. Confirm exact `super` partition size with `fastboot getvar all` or `lsblk -b`.
 3. Port A146P-specific `/data` decryption only when matching A146P TEE/KeyMint/gatekeeper blobs are available.
 4. Confirm presence of `carrier`, `hidden`, `keydata`, `keyrefuge` on target variant before relying on them.

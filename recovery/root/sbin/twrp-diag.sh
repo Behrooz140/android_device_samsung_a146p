@@ -54,6 +54,7 @@ sleep 20
   echo "== USB role =="
   echo "-- cmode: $(cat /sys/class/udc/musb-hdrc/device/cmode 2>/dev/null)"
   echo "-- usb_restrict: $(cat /sys/module/usb_notify_layer/parameters/usb_restrict 2>/dev/null)"
+  echo "-- OTG host switch: /system/bin/usb_role.sh host (device|auto)"
   for f in /sys/class/typec/*/data_role /sys/class/typec/*/power_role \
            /sys/class/extcon/*/state; do
     [ -r "$f" ] || continue

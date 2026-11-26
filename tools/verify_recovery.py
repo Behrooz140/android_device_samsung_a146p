@@ -226,6 +226,9 @@ def main():
     check("init rc defines twrpdiag service", "service twrpdiag" in initrc)
     check("twrpdiag is invoked through /system/bin/sh",
           "/system/bin/sh /sbin/twrp-diag.sh" in initrc)
+    usb_role = entries.get("system/bin/usb_role.sh", (0, b""))[1]
+    check("usb_role script supports host/device/auto",
+          all(word in usb_role for word in (b"host", b"device", b"auto")))
     check("init rc defines usb-restrict service",
           "service usb-restrict" in initrc)
     check("init rc imports Samsung rc",
@@ -236,6 +239,7 @@ def main():
         "init", "default.prop", "system/etc/twrp.flags",
         "system/etc/recovery.fstab", "init.recovery.samsung.rc",
         "sbin/twrp-diag.sh", "system/bin/usb_restrict.sh",
+        "system/bin/usb_role.sh",
     )
     missing_entries = [name for name in required if name not in entries]
     check("all %d required recovery entries present" % len(required),

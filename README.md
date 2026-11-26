@@ -6,9 +6,12 @@ TWRP device tree for Samsung Galaxy A14 5G (`SM-A146P`, codename `a146p`, MediaT
 
 ## Latest release
 
-- **Build 9:** https://github.com/Behrooz140/android_device_samsung_a146p/releases/tag/build-9
-- **CI run:** https://github.com/Behrooz140/android_device_samsung_a146p/actions/runs/45610667417
-- **recovery.img SHA256:** `85b693f45c914680c642f3818c36f605a69f66633c591e429977b454f17cd6fa`
+- **Build 10:** https://github.com/Behrooz140/android_device_samsung_a146p/releases/tag/build-10
+- **CI run:** https://github.com/Behrooz140/android_device_samsung_a146p/actions/runs/45763558190
+- **Build commit:** `e6fc6a71b2ac288dbdbec9aebd18ba19fabe9b7c`
+- **recovery.img SHA256:** `6251700c57de9e24b1d0e721aef011d4b3869f7fc8466f36db8a4c92bfd7ea2c`
+- **Odin tar SHA256:** `7a42a9877b40600b7d4a853c5cbb17fcf0e4d0b68641f64d1549f3d131e29ec0`
+- Previous stable: [build-9](https://github.com/Behrooz140/android_device_samsung_a146p/releases/tag/build-9)
 
 ## Device specifications
 
@@ -117,6 +120,13 @@ Never flash `preloader`, `lk`, `tee1`, or `tzar`.
 - **Reboot / Fastbootd:** Fixed reboot handling (BCB/misc fallback). Build-9 logs show the reboot scripts writing the BCB correctly and TWRP entering fastbootd with `--fastboot`.
 - **ADB sideload:** Added a USB-state timeout guard to prevent sideload from getting stuck indefinitely; detection still needs hardware retest.
 - **Wipe behavior:** Dalvik/cache wipe no longer fails completely when `/data` cannot be mounted; empty/RO logical partition mount errors are handled more cleanly.
+
+## Build-10 changes
+
+- Added `/system/bin/usb_role.sh` for on-demand OTG host/device/auto role switching.
+- `twrp-diag.sh` now records how to switch the USB role.
+- `tools/verify_recovery.py` now checks that the role script is packaged.
+- Local verification: **60 passed, 0 failed**.
 
 ## USB-OTG host mode
 

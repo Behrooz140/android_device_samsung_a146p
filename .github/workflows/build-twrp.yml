@@ -26,6 +26,11 @@ on:
         options:
           - eng
           - userdebug
+      release_tag:
+        description: "Release tag (auto = build-<run number>)"
+        required: false
+        default: "auto"
+        type: string
   push:
     tags:
       - "v*"
@@ -248,7 +253,13 @@ jobs:
           GH_REPO: ${{ github.repository }}
         run: |
           set -euxo pipefail
-          TAG="${{ startsWith(github.ref, 'refs/tags/v') && github.ref_name || format('build-{0}', github.run_number) }}"
+          DEFAULT_TAG="${{ startsWith(github.ref, 'refs/tags/v') && github.ref_name || format('build-{0}', github.run_number) }}"
+          INPUT_TAG="${{ github.event.inputs.release_tag }}"
+          if [ -n "$INPUT_TAG" ] && [ "$INPUT_TAG" != "auto" ]; then
+            TAG="$INPUT_TAG"
+          else
+            TAG="$DEFAULT_TAG"
+          fi
           gh release create "$TAG" artifacts/* \
             --title "TWRP a146p — $TAG" \
             --notes "Automated TWRP build for Samsung Galaxy A14 5G (SM-A146P / a146p). Run #${{ github.run_number }}, commit \`${GITHUB_SHA}\`. Flash a patched vbmeta first; see README.md." \

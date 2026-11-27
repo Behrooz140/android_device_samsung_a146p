@@ -235,8 +235,8 @@ def main():
         "utf-8", "replace")
     check("diag matches underscore module names in /proc/modules",
           "i2c_mt65xx" in diag and "i2c-mt65xx" not in diag)
-    check("diag includes UFS boot devices",
-          "/dev/block/sda" in diag and "/dev/block/sdb" in diag)
+    check("diag documents internal UFS LUNs",
+          "sda/sdb" in diag and "sdc" in diag)
     check("diag identifies USB-OTG block devices",
           "USB storage devices (for TWRP Mount / USB-OTG)" in diag and
           "/sys/bus/usb/devices" in diag and "readlink -f" in diag)

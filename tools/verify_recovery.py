@@ -237,11 +237,33 @@ def main():
           "i2c_mt65xx" in diag and "i2c-mt65xx" not in diag)
     check("diag includes UFS boot devices",
           "/dev/block/sda" in diag and "/dev/block/sdb" in diag)
+    check("diag identifies USB-OTG block devices",
+          "USB storage devices (for TWRP Mount / USB-OTG)" in diag and
+          "/sys/bus/usb/devices" in diag and "readlink -f" in diag)
+    check("diag covers all sdX block devices, not only UFS boot LUNs",
+          "/sys/block/sd*" in diag)
+    twrp_flags = entries.get("system/etc/twrp.flags", (0, b""))[1].decode(
+        "utf-8", "replace")
+    otg_lines = [ln for ln in twrp_flags.splitlines()
+                 if ln.strip() and not ln.lstrip().startswith("#")]
+    check("twrp.flags defines one active USB-OTG sysfs entry",
+          len(otg_lines) == 1 and
+          otg_lines[0].startswith("/devices/platform/musb-hdrc /usb_otg auto ") and
+          "storage" in otg_lines[0] and "removable" in otg_lines[0] and
+          "canbewiped=0" in otg_lines[0] and "backup=0" in otg_lines[0],
+          "; ".join(otg_lines) if otg_lines else "no active entry")
+    check("twrp.flags no longer points OTG at internal UFS LUNs",
+          "/dev/block/sda1" not in twrp_flags and
+          "/dev/block/sdb1" not in twrp_flags)
     check("diag refreshes persisted SAVED-TO.txt after writing destination",
           "cp -f \"$LOG/SAVED-TO.txt\" \"$saved_dir/SAVED-TO.txt\"" in diag)
     usb_role = entries.get("system/bin/usb_role.sh", (0, b""))[1]
     check("usb_role script supports host/device/auto",
           all(word in usb_role for word in (b"host", b"device", b"auto")))
+    usb_restrict = entries.get("system/bin/usb_restrict.sh", (0, b""))[1]
+    check("usb_restrict uses auto cmode=1 (no forced device mode)",
+          b'echo 1 > "$CMODE"' in usb_restrict and
+          b'echo 3 > "$CMODE"' not in usb_restrict)
     check("init rc defines usb-restrict service",
           "service usb-restrict" in initrc)
     check("init rc imports Samsung rc",

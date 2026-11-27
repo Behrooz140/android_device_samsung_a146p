@@ -62,8 +62,9 @@ service twrpdiag /system/bin/sh /sbin/twrp-diag.sh
     group root
     seclabel u:r:recovery:s0
 
-# Forces musb into peripheral mode when the bootloader passes usb_restrict=1.
-# For OTG host mode, run /system/bin/usb_role.sh host from adb or Terminal.
+# Lets the Type-C/PD stack choose the role when the bootloader passes
+# usb_restrict=1 (cmode=1). If auto mode fails, force a role for this boot:
+# /system/bin/usb_role.sh device|host from adb or Terminal.
 service usb-restrict /system/bin/usb_restrict.sh
     user root
     group root

@@ -46,10 +46,23 @@ sleep 20
   ls /sys/bus/i2c/devices 2>/dev/null
   echo
   echo "== block devices =="
-  # This device is UFS (sda/sdb); eMMC names normally do not exist.
-  ls -l /dev/block/sda /dev/block/sdb /dev/block/mmcblk* 2>/dev/null | head -40
+  # sda/sdb are internal UFS boot LUNs and sdc is the internal UFS main LUN.
+  # USB-OTG disks normally appear as a later sdX device (sdd, sde, ...).
+  ls -l /dev/block/sd* /dev/block/mmcblk* 2>/dev/null | head -60
   echo "-- by-name sample"
   ls /dev/block/by-name 2>/dev/null | head -60
+  echo
+  echo "== USB storage devices (for TWRP Mount / USB-OTG) =="
+  for b in /sys/block/sd*; do
+    [ -e "$b" ] || continue
+    echo "-- $b -> $(readlink -f "$b" 2>/dev/null)"
+    echo "   size=$(cat "$b/size" 2>/dev/null)"
+    echo "   partitions: $(ls "$b" 2>/dev/null | grep -E '^sd[a-z][0-9]+$' | tr '\n' ' ')"
+  done
+  echo "-- USB bus devices"
+  ls /sys/bus/usb/devices 2>/dev/null | head -60
+  echo "-- USB mass-storage driver"
+  ls -l /sys/bus/usb/drivers/usb-storage 2>/dev/null | head -40
   echo
   echo "== mounts =="
   cat /proc/mounts 2>/dev/null

@@ -2,9 +2,16 @@
 # Extra fstab-format entries merged by TWRP on top of recovery.fstab.
 # Keep only entries whose mount point does NOT already exist in recovery.fstab.
 #
-# USB-OTG: MT6833 exposes mass storage as /dev/block/sdX. Confirm the actual
-# node with `ls /dev/block` while a drive is plugged in, then uncomment one of
-# the lines below.
+# USB-OTG: the MT6833 musb controller is registered as the platform device
+# "musb-hdrc". TWRP matches this sysfs prefix against block uevents and adds
+# USB disks only when they are actually attached:
 #
-#/usb_otg    vfat    /dev/block/sda1 /dev/block/sda flags=display="USB-OTG";storage;wipeingui;removable;backup=1
-#/usb_otg    vfat    /dev/block/sdb1 /dev/block/sdb flags=display="USB-OTG";storage;wipeingui;removable;backup=1
+#   * partitioned USB disk -> /usb_otg-1, /usb_otg-2, ... (one per partition)
+#   * superfloppy (filesystem directly on the disk) -> the disk itself
+#
+# The fstab filesystem is "auto" so blkid picks vfat/exFAT/NTFS/f2fs/ext4.
+# wipe and backup are disabled; this is a removable storage device, not a
+# phone partition. The old /dev/block/sda1 and sdb1 lines were removed because
+# sda/sdb are internal UFS boot LUNs and sdc is the internal UFS main LUN.
+#
+/devices/platform/musb-hdrc /usb_otg auto flags=display="USB-OTG";storage;removable;canbewiped=0;backup=0

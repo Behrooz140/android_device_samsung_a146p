@@ -6,10 +6,11 @@
 #   usb_role.sh auto     -> cmode 1: let the Type-C/PD stack choose
 #   usb_role.sh          -> print the current cmode
 #
-# The bootloader passes usb_notify_layer.usb_restrict=1 on this device, so
-# usb_restrict.sh forces device mode at every boot to keep adb/MTP alive.
-# That also keeps OTG VBUS off. This script overrides cmode for the current
-# boot only; no setting is persisted and a reboot restores device mode.
+# The bootloader passes usb_notify_layer.usb_restrict=1 on this device.
+# build-13 sets cmode=1 (auto) at boot so the Type-C/PD stack can switch
+# between device (PC) and host (OTG) on its own. If auto mode does not bring
+# up adb or an OTG device, this script forces the role for the current boot
+# only; no setting is persisted and a reboot restores auto mode.
 CMODE=/sys/class/udc/musb-hdrc/device/cmode
 
 case "${1:-}" in

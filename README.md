@@ -2,7 +2,7 @@
 
 TWRP device tree for Samsung Galaxy A14 5G (`SM-A146P`, codename `a146p`, MediaTek MT6833 / Dimensity 700).
 
-> **Status:** Booted and verified on real hardware. Hardware diagnostics confirm the FT8722 touch driver, fastbootd, reboot scripts, and logical partitions. Build-10 adds an on-demand USB-OTG host switch. `/data` decryption is not implemented.
+> **Status:** Booted and verified on real hardware. Hardware diagnostics confirm the FT8722 touch driver, fastbootd, reboot scripts, and logical partitions. Build-12 fixed build identity, vibrator and diagnostics. Build-13 puts USB in auto role mode (`cmode=1`) and registers USB disks in TWRP's Mount menu through a sysfs-based `/usb_otg` entry, so OTG no longer needs a manual switch. `/data` decryption is not implemented.
 
 ## Latest release
 
@@ -109,7 +109,7 @@ Never flash `preloader`, `lk`, `tee1`, or `tzar`.
 | ADB sideload | USB-state timeout guard added; detection/cancel behavior still needs hardware retest |
 | `fastbootd` | Enabled; startup with `--fastboot` confirmed on hardware |
 | MTP / ADB | Configfs rules present; adb daemon confirmed running |
-| USB-OTG host | Disabled by default because `usb_restrict=1` forces device mode; build-10 adds `/system/bin/usb_role.sh host` |
+| USB-OTG host | Build-13 sets `cmode=1` (auto) so the Type-C/PD stack picks device vs host; attached USB disks appear as `USB-OTG` in Mount; `usb_role.sh device|host` remains as a manual fallback |
 | Vibrator | Patched to use `/sys/class/leds/vibrator` (the legacy `timed_output` path does not exist) |
 | `/data` decryption | Not implemented |
 | Backup of logical partitions | Intentionally disabled |
@@ -129,14 +129,33 @@ Never flash `preloader`, `lk`, `tee1`, or `tzar`.
 - `tools/verify_recovery.py` now checks that the role script is packaged.
 - Local verification: **60 passed, 0 failed**.
 
-## USB-OTG host mode
+## Build-13 changes
 
-The bootloader passes `usb_notify_layer.usb_restrict=1`, so `usb_restrict.sh`
-forces `cmode=3` (peripheral) at boot to keep adb/MTP working. That also keeps
-OTG VBUS off, so USB drives, mice, and keyboards will not power up.
+- `usb_restrict.sh` now sets `cmode=1` (auto) instead of forcing `cmode=3` (device).
+- `twrp.flags` adds a sysfs-based `USB-OTG` storage entry for `musb-hdrc`, with `auto` filesystem detection and wipe/backup disabled.
+- `twrp-diag.sh` records all `sdX` devices, their sysfs paths, partitions, USB bus devices and the `usb-storage` driver so a missing OTG mount can be diagnosed.
+- `tools/verify_recovery.py` checks the auto role, the safe OTG entry and the new diagnostics.
 
-Build-10 adds `/system/bin/usb_role.sh` to override the role for the current
-boot:
+## USB-OTG host mode and Mount
+
+The bootloader passes `usb_notify_layer.usb_restrict=1`, and Samsung's
+`usb_notify_layer.ko` enforces it. Build-13 no longer forces `cmode=3`
+(peripheral) at boot; `usb_restrict.sh` sets `cmode=1` (auto) so the Type-C/PD
+stack can choose device vs host from the cable/attachment.
+
+Attached USB storage is discovered through the `musb-hdrc` sysfs entry in
+`system/etc/twrp.flags`. TWRP adds a `USB-OTG` entry to **Mount** only when a
+disk is actually present:
+
+- partitioned USB disk: `/usb_otg-1`, `/usb_otg-2`, ... (one per partition);
+- superfloppy (filesystem directly on the disk): the disk itself;
+- filesystem is detected with `auto` (vfat/exFAT/NTFS/f2fs/ext4);
+- wiping and backup are disabled for this removable entry.
+
+`sda`, `sdb` and `sdc` are internal UFS LUNs; they are deliberately excluded.
+USB disks normally appear as a later `sdX` device (`sdd`, `sde`, ...).
+
+`/system/bin/usb_role.sh` remains as a per-boot fallback:
 
 ```sh
 adb shell /system/bin/usb_role.sh host    # cmode 2: OTG devices get 5 V, adb drops
@@ -145,9 +164,9 @@ adb shell /system/bin/usb_role.sh device  # cmode 3: restore adb/MTP
 adb shell /system/bin/usb_role.sh         # print current cmode
 ```
 
-The same commands work from TWRP's Terminal. Run `host` **before** attaching the
-OTG device; a reboot always returns to device mode. This is a session switch,
-not a persisted setting.
+The same commands work from TWRP's Terminal. Run `host` **before** attaching
+the OTG device if auto mode does not switch. A reboot returns to the auto
+default; this is a session switch, not a persisted setting.
 
 ## Diagnostics
 
@@ -162,7 +181,7 @@ Review logs before sharing; `dmesg` may contain device identifiers.
 
 ## Remaining work
 
-1. Hardware retest build-10: USB-OTG host switch, sideload/cancel, auto-reboot, logical wipe, GSI flash to `system`. Build-9 already confirmed fastbootd and reboot scripts.
+1. Hardware retest build-13: auto USB role (PC → adb/MTP, OTG → host), then sideload/cancel, auto-reboot, logical wipe, GSI flash to `system`. Build-12 diagnostics confirmed touch, modules and prop overrides.
 2. Confirm exact `super` partition size with `fastboot getvar all` or `lsblk -b`.
 3. Port A146P-specific `/data` decryption only when matching A146P TEE/KeyMint/gatekeeper blobs are available.
 4. `keydata` and `keyrefuge` exist on this variant but are FBE-protected and cannot be mounted in TWRP yet; verify `carrier` and `hidden` separately (they were outside the sampled `by-name` list).

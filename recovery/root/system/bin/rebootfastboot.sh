@@ -34,9 +34,15 @@ if [ ! -e "$MISC" ]; then
 else
 	# command + status + recovery + stage (32+32+768+32); the rest of the
 	# partition is left untouched.
-	dd if=/dev/zero of="$MISC" bs=1 count=864 conv=notrunc 2>>"$OUT"
-	printf 'boot-recovery' | dd of="$MISC" bs=1 seek=0 conv=notrunc 2>>"$OUT"
-	printf 'recovery\n--fastboot' | dd of="$MISC" bs=1 seek=64 conv=notrunc 2>>"$OUT"
+	dd if=/dev/zero of="$MISC" bs=1 count=864 conv=notrunc 2>>"$OUT" || {
+		echo "failed to clear misc" >> "$OUT"
+	}
+	printf 'boot-recovery' | dd of="$MISC" bs=1 seek=0 conv=notrunc 2>>"$OUT" || {
+		echo "failed to write misc command" >> "$OUT"
+	}
+	printf 'recovery\n--fastboot' | dd of="$MISC" bs=1 seek=64 conv=notrunc 2>>"$OUT" || {
+		echo "failed to write misc recovery args" >> "$OUT"
+	}
 	sync
 	echo "-- misc[0..95] after write --" >> "$OUT"
 	dd if="$MISC" bs=1 count=96 2>/dev/null | od -An -tx1 -c >> "$OUT" 2>&1

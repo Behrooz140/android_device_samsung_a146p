@@ -2,7 +2,7 @@
 
 TWRP device tree for Samsung Galaxy A14 5G (`SM-A146P`, codename `a146p`, MediaTek MT6833 / Dimensity 700).
 
-> **Status:** Booted and verified on real hardware. Build-9 logs confirm fastbootd, reboot scripts, and logical partitions; the touch fix is carried over from build-8. Build-10 adds an on-demand USB-OTG host switch. `/data` decryption is not implemented.
+> **Status:** Booted and verified on real hardware. Hardware diagnostics confirm the FT8722 touch driver, fastbootd, reboot scripts, and logical partitions. Build-10 adds an on-demand USB-OTG host switch. `/data` decryption is not implemented.
 
 ## Latest release
 
@@ -32,14 +32,14 @@ TWRP device tree for Samsung Galaxy A14 5G (`SM-A146P`, codename `a146p`, MediaT
 
 ## Prebuilts source
 
-Everything in `prebuilt/` was extracted directly from the stock `recovery.img` for this device. Stock images and extracted ramdisk are kept outside the tree in `/root/a146p_stock_images/` on the build machine and are not committed.
+The kernel, DTB, DTBO, and 185 stock modules in `prebuilt/` were extracted directly from this device's stock `recovery.img` (build `A146PXXULEZJ3`). Two additional modules, `focaltech_tp.ko` and `sec_cmd.ko`, provide FT8722 touch support and are compiled against the same stock kernel version. Stock images and extracted ramdisks are kept outside the tree and are not committed.
 
 | File | Size (bytes) | MD5 |
 |---|---:|---|
 | `prebuilt/kernel` | 14,092,799 | `40d6b66f8aaeae274197748032b2a141` |
 | `prebuilt/dtb.img` | 201,775 | `c242c18278a5de98c972069e902935e6` |
 | `prebuilt/dtbo.img` | 51,618 | `58b05a34865d2db035da366d00010147` |
-| `prebuilt/modules/` | 24 MB | 185 `.ko` files + 4 metadata files |
+| `prebuilt/modules/` | 24 MB | 187 `.ko` files (185 stock + 2 touch) + 4 metadata files |
 
 Kernel: `6.6.127-android15-8-abA146PXXULEZJ3-4k`
 
@@ -103,13 +103,14 @@ Never flash `preloader`, `lk`, `tee1`, or `tzar`.
 | Feature | Status |
 |---|---|
 | Boot, display, storage | Booted on real hardware; storage/logical partitions verified |
-| Touch | FT8722 `focaltech_tp.ko` + firmware added; awaiting hardware retest |
+| Touch | Confirmed on hardware: `fts_ts` input device with real DOWN/UP events; FT8722 driver and firmware added |
 | Logical partitions / GSI | Confirmed in build-9 hardware logs: dynamic partitions are prepared from `super` |
 | Reboot / fastbootd | Confirmed in build-9 hardware logs: BCB/misc writes succeed and TWRP enters fastbootd |
 | ADB sideload | USB-state timeout guard added; detection/cancel behavior still needs hardware retest |
 | `fastbootd` | Enabled; startup with `--fastboot` confirmed on hardware |
 | MTP / ADB | Configfs rules present; adb daemon confirmed running |
 | USB-OTG host | Disabled by default because `usb_restrict=1` forces device mode; build-10 adds `/system/bin/usb_role.sh host` |
+| Vibrator | Patched to use `/sys/class/leds/vibrator` (the legacy `timed_output` path does not exist) |
 | `/data` decryption | Not implemented |
 | Backup of logical partitions | Intentionally disabled |
 
@@ -150,7 +151,7 @@ not a persisted setting.
 
 ## Diagnostics
 
-`twrpdiag` writes to `/cache/twrp-diag` and `/tmp/twrp-diag`. It does not mount `/metadata` read-write, dump raw partition headers, or copy TEE logs.
+`twrpdiag` writes to `/cache/twrp-diag` and `/tmp/twrp-diag`. It does not mount `/metadata` read-write, dump raw partition headers, or copy TEE logs. Hardware diagnostics also confirmed the FT8722 touch events, the USB-restrict boot state, and the expected FBE mount failure for `/data`. The legacy `timed_output` vibrator path was missing, so patch `0019` makes TWRP use this device's LED-class vibrator instead.
 
 ```sh
 adb pull /cache/twrp-diag/diag.txt
@@ -164,7 +165,7 @@ Review logs before sharing; `dmesg` may contain device identifiers.
 1. Hardware retest build-10: USB-OTG host switch, sideload/cancel, auto-reboot, logical wipe, GSI flash to `system`. Build-9 already confirmed fastbootd and reboot scripts.
 2. Confirm exact `super` partition size with `fastboot getvar all` or `lsblk -b`.
 3. Port A146P-specific `/data` decryption only when matching A146P TEE/KeyMint/gatekeeper blobs are available.
-4. Confirm presence of `carrier`, `hidden`, `keydata`, `keyrefuge` on target variant before relying on them.
+4. `keydata` and `keyrefuge` exist on this variant but are FBE-protected and cannot be mounted in TWRP yet; verify `carrier` and `hidden` separately (they were outside the sampled `by-name` list).
 
 ## Sensitive partitions
 

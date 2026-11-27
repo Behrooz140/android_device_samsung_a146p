@@ -13,8 +13,9 @@ PRODUCT_USE_DYNAMIC_PARTITIONS := true
 # KeyMint/gatekeeper stack is ported from the a14m tree.
 PRODUCT_SOONG_NAMESPACES += device/samsung/a146p
 
-# Explicit ramdisk files. The rest of recovery/root is picked up through
-# TARGET_RECOVERY_DEVICE_DIRS in BoardConfig.mk.
+# These ramdisk files need explicit entries: TARGET_RECOVERY_DEVICE_DIRS copies
+# the rest of recovery/root, but the init.rc files require build-system
+# SELinux/permission handling and twrp.flags is read from /system/etc.
 PRODUCT_COPY_FILES += \
     $(LOCAL_PATH)/recovery/root/init.recovery.mt6833.rc:recovery/root/init.recovery.mt6833.rc \
     $(LOCAL_PATH)/recovery/root/init.recovery.samsung.rc:recovery/root/init.recovery.samsung.rc \

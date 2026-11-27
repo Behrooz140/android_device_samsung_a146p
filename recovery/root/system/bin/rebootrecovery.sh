@@ -25,8 +25,12 @@ if [ ! -e "$MISC" ]; then
 	echo "misc partition not found" >> "$OUT"
 else
 	# command[32] and status[32] belong to us; recovery[768] is left alone.
-	dd if=/dev/zero of="$MISC" bs=1 count=64 conv=notrunc 2>>"$OUT"
-	printf 'boot-recovery' | dd of="$MISC" bs=1 count=13 conv=notrunc 2>>"$OUT"
+	dd if=/dev/zero of="$MISC" bs=1 count=64 conv=notrunc 2>>"$OUT" || {
+		echo "failed to clear misc" >> "$OUT"
+	}
+	printf 'boot-recovery' | dd of="$MISC" bs=1 count=13 conv=notrunc 2>>"$OUT" || {
+		echo "failed to write misc command" >> "$OUT"
+	}
 	sync
 	echo "-- misc[0..63] after write --" >> "$OUT"
 	dd if="$MISC" bs=1 count=64 2>/dev/null | od -An -tx1 >> "$OUT" 2>&1

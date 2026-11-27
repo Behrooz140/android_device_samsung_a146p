@@ -38,8 +38,8 @@ STOCK_MD5 = {
 STOCK_OS_VERSION = 0x1E0001A9  # 15.0.0 / 2026-09
 FSTAB_POINTS = (
     "/system", "/vendor", "/product", "/system_ext", "/system_dlkm",
-    "/vendor_dlkm", "/odm_dlkm", "/data", "/cache", "/efs", "/sec_efs",
-    "/persist", "/nvdata",
+    "/vendor_dlkm", "/odm_dlkm", "/data", "/cache", "/metadata", "/efs",
+    "/persist", "/nvdata", "/keydata", "/keyrefuge",
 )
 
 results = []
@@ -213,9 +213,12 @@ def main():
         check("fstab has all %d expected mount points" % len(FSTAB_POINTS),
               not missing_points,
               "missing: %s" % ", ".join(missing_points) if missing_points else "")
-        for sensitive in ("/efs", "/persist", "/nvdata"):
+        for sensitive in ("/efs", "/persist", "/nvdata", "/metadata"):
             lines = [ln for ln in fstab.splitlines()
                      if ln.split() and ln.split()[0] == sensitive]
+            if not lines:
+                check("%s has an fstab entry" % sensitive, False, "missing")
+                continue
             bad = [ln for ln in lines if "wipeingui" in ln or "flags=rw" in ln]
             check("%s has no wipe/rw flags" % sensitive, not bad,
                   "; ".join(bad) if bad else "")
@@ -226,6 +229,16 @@ def main():
     check("init rc defines twrpdiag service", "service twrpdiag" in initrc)
     check("twrpdiag is invoked through /system/bin/sh",
           "/system/bin/sh /sbin/twrp-diag.sh" in initrc)
+    check("init rc does not exec missing mtk_plpath_utils",
+          "mtk_plpath_utils" not in initrc)
+    diag = entries.get("sbin/twrp-diag.sh", (0, b""))[1].decode(
+        "utf-8", "replace")
+    check("diag matches underscore module names in /proc/modules",
+          "i2c_mt65xx" in diag and "i2c-mt65xx" not in diag)
+    check("diag includes UFS boot devices",
+          "/dev/block/sda" in diag and "/dev/block/sdb" in diag)
+    check("diag refreshes persisted SAVED-TO.txt after writing destination",
+          "cp -f \"$LOG/SAVED-TO.txt\" \"$saved_dir/SAVED-TO.txt\"" in diag)
     usb_role = entries.get("system/bin/usb_role.sh", (0, b""))[1]
     check("usb_role script supports host/device/auto",
           all(word in usb_role for word in (b"host", b"device", b"auto")))

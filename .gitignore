@@ -1,6 +1,8 @@
 # Build outputs
 out/
 .work/
+artifacts/
+__pycache__/
 
 # Local ROM / firmware images (never commit vendor blobs)
 *.img

@@ -159,13 +159,12 @@ BOARD_AVB_RECOVERY_ALGORITHM := SHA256_RSA4096
 BOARD_AVB_RECOVERY_ROLLBACK_INDEX := 1
 BOARD_AVB_RECOVERY_ROLLBACK_INDEX_LOCATION := 1
 
-# Keep the build from being blocked by an older installed security patch.
-# These values are only build-time placeholders. They are still exported into
-# the final image unless overridden by the stock values below, which must be
-# the last OS metadata arguments passed to mkbootimg.
-PLATFORM_SECURITY_PATCH := 2099-12-31
-VENDOR_SECURITY_PATCH := 2099-12-31
-PLATFORM_VERSION := 16.1.0
+# Match the stock build identity. These values are baked into the boot image
+# header and default system properties; TW_OVERRIDE_SYSTEM_PROPS below refreshes
+# the relevant properties from the installed system at runtime.
+PLATFORM_SECURITY_PATCH := 2026-09-05
+VENDOR_SECURITY_PATCH := 2026-09-05
+PLATFORM_VERSION := 15
 
 # ----------------------------------------------------------------------------
 # TWRP
@@ -216,6 +215,7 @@ RECOVERY_SDCARD_ON_DATA := true
 TW_OVERRIDE_SYSTEM_PROPS := \
     "ro.build.fingerprint=ro.system.build.fingerprint;\
     ro.build.description;\
+    ro.build.display.id;\
     ro.build.version.incremental;\
     ro.build.version.release;\
     ro.build.version.security_patch"

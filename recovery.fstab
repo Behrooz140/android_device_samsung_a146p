@@ -2,8 +2,10 @@
 # TWRP fstab - Samsung Galaxy A14 5G (SM-A146P / a146p)
 # MediaTek MT6833 - Android 15 / One UI 7
 #
-# Partition names and mount options come from the stock recovery ramdisk:
-#   system/etc/recovery.fstab (build A146PXXULEZJ3).
+# Partition names and most mount options come from the stock recovery
+# ramdisk: system/etc/recovery.fstab (build A146PXXULEZJ3). The entries for
+# /persist and /nvdata are added here so they can be backed up; the stock
+# fstab does not list them.
 # The file uses TWRP's v1-style layout: <mount point> <fs> <device> flags=...
 # TWRP probes the real filesystem at mount time, so one entry per mount point
 # is enough; duplicate mount points confuse the partition parser.
@@ -45,7 +47,10 @@
 # keys are unlocked. Decryption is not implemented in this tree yet.
 /data           f2fs    /dev/block/by-name/userdata      flags=display=data;backup=1;wipeingui;canbewiped;storage;length=-16384
 /cache          ext4    /dev/block/by-name/cache         flags=display=cache;backup=1;wipeingui;canbewiped
-/metadata       ext4    /dev/block/by-name/metadata      flags=display=metadata;wipeingui;canbewiped
+# Metadata encryption is not usable without /data decryption. Do not expose
+# this partition in the wipe UI: wiping it would discard the encryption keys
+# for an encrypted /data that TWRP cannot restore.
+/metadata       ext4    /dev/block/by-name/metadata      flags=display=metadata;fsflags=ro
 
 # ---------------------------------------------------------------------------
 # Samsung ODE / calibration / FOTA partitions

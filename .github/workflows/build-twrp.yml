@@ -9,8 +9,8 @@
 #   - The repo launcher is verified against a fixed SHA256 before use.
 #   - --no-repo-verify is NOT used; the manifest's GPG key is verified.
 #   - The build job has read-only permissions; only the release job can write.
-#   - No patches are applied automatically yet. Add them only after they have
-#     been rebased and verified against the exact source revision used here.
+#   - The local patches/ directory is applied in sorted order with strict
+#     context; a failed hunk stops the build instead of being silently fuzzed.
 #
 
 name: Build TWRP (a146p)
@@ -105,8 +105,9 @@ jobs:
           repo sync -c -j"$(nproc --all)" --force-sync \
             --no-clone-bundle --no-tags
 
-          # Record the exact revision used by this build. Commit this file and
-          # pass -m pinned-manifest.xml to repo init for reproducible builds.
+          # Record the exact revision used by this build. It is attached to
+          # the release so a build can be reproduced with:
+          #   repo init -m pinned-manifest.xml -u "$MANIFEST_URL"
           repo manifest -r -o "$GITHUB_WORKSPACE/artifacts-src-pinned-manifest.xml"
           df -h
 
@@ -138,7 +139,8 @@ jobs:
           for p in "${patches[@]}"; do
             echo "--- applying $(basename "$p") ---"
             # Fail loudly instead of letting --fuzz silently misapply a patch.
-            patch -p1 --forward --no-backup-if-mismatch -d bootable/recovery < "$p"
+            patch -p1 --forward --no-backup-if-mismatch --fuzz=0 \
+              -d bootable/recovery < "$p"
           done
 
       - name: Reclaim disk space

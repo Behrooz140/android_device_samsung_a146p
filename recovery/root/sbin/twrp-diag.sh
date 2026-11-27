@@ -29,7 +29,9 @@ sleep 20
   cat /proc/version 2>/dev/null
   echo
   echo "== loaded modules (display / touch / input / storage) =="
-  grep -E 'panel-|lcm_|mediatek-drm|mtk_disp|mtk_panel|mtk-kpd|i2c-mt65xx|pinctrl-mt6833|ufs-mediatek|regulator-vibrator|tp_notifier|sec_ext|sec_debug' /proc/modules 2>/dev/null
+  # /proc/modules uses underscores in module names; the old hyphen patterns
+  # (panel-, i2c-mt65xx, ufs-mediatek) silently printed almost nothing.
+  grep -E 'panel|lcm_|mediatek_drm|mtk_disp|mtk_panel|mtk_kpd|i2c_mt65xx|pinctrl_mt6833|ufs_mediatek|regulator_vibrator|tp_notifier|sec_ext|sec_debug|focaltech_tp|sec_cmd' /proc/modules 2>/dev/null
   echo "-- module count: $(grep -c '^' /proc/modules 2>/dev/null)"
   echo
   echo "== input devices =="
@@ -44,7 +46,8 @@ sleep 20
   ls /sys/bus/i2c/devices 2>/dev/null
   echo
   echo "== block devices =="
-  ls -l /dev/block/mmcblk* 2>/dev/null | head -40
+  # This device is UFS (sda/sdb); eMMC names normally do not exist.
+  ls -l /dev/block/sda /dev/block/sdb /dev/block/mmcblk* 2>/dev/null | head -40
   echo "-- by-name sample"
   ls /dev/block/by-name 2>/dev/null | head -60
   echo
@@ -108,22 +111,25 @@ EOT
 # Cache is the only persistent destination. Mount read-write only if TWRP
 # has not already mounted it.
 : > "$LOG/SAVED-TO.txt"
-saved=0
+saved_dir=
 if [ -d /cache ] && touch /cache/.twrp-diag-test 2>/dev/null; then
   rm -f /cache/.twrp-diag-test
-  mkdir -p /cache/twrp-diag 2>/dev/null
-  cp -f "$LOG"/* /cache/twrp-diag/ 2>/dev/null
-  saved=1
-  echo "/cache/twrp-diag" >> "$LOG/SAVED-TO.txt"
+  saved_dir=/cache/twrp-diag
+  mkdir -p "$saved_dir" 2>/dev/null
+  cp -f "$LOG"/* "$saved_dir/" 2>/dev/null
+  echo "$saved_dir" >> "$LOG/SAVED-TO.txt"
+  cp -f "$LOG/SAVED-TO.txt" "$saved_dir/SAVED-TO.txt" 2>/dev/null
 fi
-if [ "$saved" = "0" ]; then
+if [ -z "$saved_dir" ]; then
   mkdir -p /mnt/cache 2>/dev/null
   if mount -t ext4 -o rw /dev/block/by-name/cache /mnt/cache 2>/dev/null; then
-    mkdir -p /mnt/cache/twrp-diag 2>/dev/null
-    cp -f "$LOG"/* /mnt/cache/twrp-diag/ 2>/dev/null
+    saved_dir=/mnt/cache/twrp-diag
+    mkdir -p "$saved_dir" 2>/dev/null
+    cp -f "$LOG"/* "$saved_dir/" 2>/dev/null
+    echo "/cache/twrp-diag" >> "$LOG/SAVED-TO.txt"
+    cp -f "$LOG/SAVED-TO.txt" "$saved_dir/SAVED-TO.txt" 2>/dev/null
     sync
     umount /mnt/cache 2>/dev/null
-    echo "/cache/twrp-diag" >> "$LOG/SAVED-TO.txt"
   fi
 fi
 

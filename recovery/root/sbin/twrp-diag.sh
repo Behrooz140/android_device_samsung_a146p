@@ -29,8 +29,8 @@ sleep 20
   cat /proc/version 2>/dev/null
   echo
   echo "== loaded modules (display / touch / input / storage) =="
-  # /proc/modules uses underscores in module names; the old hyphen patterns
-  # (panel-, i2c-mt65xx, ufs-mediatek) silently printed almost nothing.
+  # /proc/modules uses underscores in module names; the old hyphenated
+  # patterns silently printed almost nothing.
   grep -E 'panel|lcm_|mediatek_drm|mtk_disp|mtk_panel|mtk_kpd|i2c_mt65xx|pinctrl_mt6833|ufs_mediatek|regulator_vibrator|tp_notifier|sec_ext|sec_debug|focaltech_tp|sec_cmd' /proc/modules 2>/dev/null
   echo "-- module count: $(grep -c '^' /proc/modules 2>/dev/null)"
   echo

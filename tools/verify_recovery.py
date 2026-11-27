@@ -253,8 +253,8 @@ def main():
           "canbewiped=0" in otg_lines[0] and "backup=0" in otg_lines[0],
           "; ".join(otg_lines) if otg_lines else "no active entry")
     check("twrp.flags no longer points OTG at internal UFS LUNs",
-          "/dev/block/sda1" not in twrp_flags and
-          "/dev/block/sdb1" not in twrp_flags)
+          not any("/dev/block/sda1" in ln or "/dev/block/sdb1" in ln
+                  for ln in otg_lines))
     check("diag refreshes persisted SAVED-TO.txt after writing destination",
           "cp -f \"$LOG/SAVED-TO.txt\" \"$saved_dir/SAVED-TO.txt\"" in diag)
     usb_role = entries.get("system/bin/usb_role.sh", (0, b""))[1]
